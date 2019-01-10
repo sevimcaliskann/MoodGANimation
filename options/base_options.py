@@ -14,6 +14,7 @@ class BaseOptions():
         self._parser.add_argument('--test_ids_file', type=str, default='test_ids.csv', help='file containing test ids')
         self._parser.add_argument('--images_folder', type=str, default='imgs', help='images folder')
         self._parser.add_argument('--aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
+        self._parser.add_argument('--aus_folder', type=str, default='aus', help='file containing samples aus')
 
         self._parser.add_argument('--load_epoch', type=int, default=-1, help='which epoch to load? set to -1 to use latest cached model')
         self._parser.add_argument('--batch_size', type=int, default=4, help='input batch size')

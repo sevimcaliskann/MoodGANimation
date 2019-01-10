@@ -4,6 +4,7 @@ import numpy as np
 import os
 import torchvision
 import math
+import cv2
 
 
 def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
@@ -21,8 +22,16 @@ def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
             i.mul_(s).add_(m)
 
     image_numpy = img.numpy()
+
     image_numpy_t = np.transpose(image_numpy, (1, 2, 0))
+    filepath = '/home/sevim/Downloads/master_thesis_study_documents/code-examples/GANimation/test_outputs/image_numpy_t.png'
+    img = np.asarray(image_numpy_t, dtype=np.uint8)
+    cv2.imwrite(filepath, img)
+
     image_numpy_t = image_numpy_t*254.0
+    filepath = '/home/sevim/Downloads/master_thesis_study_documents/code-examples/GANimation/test_outputs/image_numpy_t2.png'
+    img = np.asarray(image_numpy_t, dtype=np.uint8)
+    cv2.imwrite(filepath, img)
 
     return image_numpy_t.astype(imtype)
 

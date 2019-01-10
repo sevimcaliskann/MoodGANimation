@@ -11,6 +11,7 @@ class CustomDatasetDataLoader:
 
     def _create_dataset(self):
         self._dataset = DatasetFactory.get_by_name(self._opt.dataset_mode, self._opt, self._is_for_train)
+        print('Dataset length: %d' % len(self._dataset))
         self._dataloader = torch.utils.data.DataLoader(
             self._dataset,
             batch_size=self._opt.batch_size,

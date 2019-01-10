@@ -1,5 +1,7 @@
 from __future__ import print_function
 import numpy as np
+import matplotlib
+matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 
 def plot_au(img, aus, title=None):

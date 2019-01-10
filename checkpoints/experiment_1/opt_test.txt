@@ -1,0 +1,23 @@
+------------ Options -------------
+aus_file: aus_openface.pkl
+aus_folder: aus
+batch_size: 4
+checkpoints_dir: ./checkpoints
+cond_nc: 17
+data_dir: None
+dataset_mode: aus
+do_saturate_mask: False
+gpu_ids: [0]
+image_size: 128
+images_folder: imgs
+input_path: None
+is_train: False
+load_epoch: 0
+model: ganimation
+n_threads_test: 1
+name: experiment_1
+output_dir: ./output
+serial_batches: False
+test_ids_file: test_ids.csv
+train_ids_file: train_ids.csv
+-------------- End ----------------

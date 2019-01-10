@@ -1,4 +1,6 @@
 import cv2
+import matplotlib
+matplotlib.use('pdf')
 from matplotlib import pyplot as plt
 import numpy as np
 

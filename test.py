@@ -11,6 +11,9 @@ import torch
 import pickle
 import numpy as np
 from models.models import ModelsFactory
+from data.dataset import DatasetFactory
+from data.dataset_aus import AusDataset
+from data.custom_dataset_data_loader import CustomDatasetDataLoader
 from options.test_options import TestOptions
 
 class MorphFacesInTheWild:
@@ -18,7 +21,8 @@ class MorphFacesInTheWild:
         self._opt = opt
         self._model = ModelsFactory.get_by_name(self._opt.model, self._opt)
         self._model.set_eval()
-        self._transform = transforms.Compose([transforms.ToTensor(),
+        self._transform = transforms.Compose([transforms.Resize(size=(self._opt.image_size, self._opt.image_size)),
+                                              transforms.ToTensor(),
                                               transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                                                    std=[0.5, 0.5, 0.5])
                                               ])
@@ -26,8 +30,13 @@ class MorphFacesInTheWild:
     def morph_file(self, img_path, expresion):
         img = cv_utils.read_cv2_img(img_path)
         morphed_img = self._img_morph(img, expresion)
-        output_name = '%s_out.png' % os.path.basename(img_path)
+        output_name = os.path.join(self._opt.output_dir, '%s_out.png' % os.path.basename(img_path)[:-4])
+        original = os.path.join(self._opt.output_dir, '%s_orig.png' % os.path.basename(img_path)[:-4])
         self._save_img(morphed_img, output_name)
+        print('Morphed image is saved at path {}'.format(output_name))
+        self._save_img(img, original)
+        print('original image is saved at path {}'.format(original))
+
 
     def _img_morph(self, img, expresion):
         bbs = face_recognition.face_locations(img)
@@ -45,7 +54,7 @@ class MorphFacesInTheWild:
 
     def _morph_face(self, face, expresion):
         face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0)
-        expresion = torch.unsqueeze(torch.from_numpy(expresion/5.0), 0)
+        expresion = torch.unsqueeze(torch.from_numpy(expresion), 0)
         test_batch = {'real_img': face, 'real_cond': expresion, 'desired_cond': expresion, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
         self._model.set_input(test_batch)
         imgs, _ = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
@@ -57,15 +66,40 @@ class MorphFacesInTheWild:
         cv2.imwrite(filepath, img)
 
 
+def generate_random_cond(conds):
+    cond = None
+    while cond is None:
+        rand_sample_id = conds.keys()[np.random.randint(0, len(conds) - 1)]
+        cond = conds[rand_sample_id].astype(np.float64)
+        cond += np.random.uniform(-0.1, 0.1, cond.shape)
+    return cond
+
+
+
 def main():
+    print('BEGINING')
     opt = TestOptions().parse()
     if not os.path.isdir(opt.output_dir):
         os.makedirs(opt.output_dir)
 
-    morph = MorphFacesInTheWild(opt)
 
+    aus_dataset_obj = AusDataset(opt, False)
+    conds_folderpath = opt.aus_folder
+    folders = next(os.walk(conds_folderpath))[1]
+    conds=dict()
+    for folder in folders:
+        folder_path = os.path.join(conds_folderpath, folder)
+        files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.pkl')]
+        for f in files:
+            conds_ = aus_dataset_obj._read_conds(os.path.join(folder_path, f))
+            conds.update(conds_)
+
+    morph = MorphFacesInTheWild(opt)
+    print("morph objetc is created")
     image_path = opt.input_path
-    expression = np.random.uniform(0, 1, opt.cond_nc)
+    #expression = np.random.uniform(0, 1, opt.cond_nc)
+    expression = generate_random_cond(conds)
+    print('expression: ', expression)
     morph.morph_file(image_path, expression)
 
 

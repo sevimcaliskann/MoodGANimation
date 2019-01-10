@@ -1,6 +1,7 @@
 import os.path
 import torchvision.transforms as transforms
 from data.dataset import DatasetBase
+#from tqdm import tqdm
 from PIL import Image
 import random
 import numpy as np
@@ -14,7 +15,10 @@ class AusDataset(DatasetBase):
         self._name = 'AusDataset'
 
         # read dataset
-        self._read_dataset_paths()
+        if self._opt.aus_file=='-':
+            self._read_dataset_paths_multi()
+        else:
+            self._read_dataset_paths()
 
     def __getitem__(self, index):
         assert (index < self._dataset_size)
@@ -63,13 +67,36 @@ class AusDataset(DatasetBase):
         self._imgs_dir = os.path.join(self._root, self._opt.images_folder)
 
         # read ids
-        use_ids_filename = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
-        use_ids_filepath = os.path.join(self._root, use_ids_filename)
+        use_ids_filepath = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
         self._ids = self._read_ids(use_ids_filepath)
 
         # read aus
-        conds_filepath = os.path.join(self._root, self._opt.aus_file)
+        conds_filepath = self._opt.aus_file
         self._conds = self._read_conds(conds_filepath)
+
+        self._ids = list(set(self._ids).intersection(set(self._conds.keys())))
+
+        # dataset size
+        self._dataset_size = len(self._ids)
+
+    def _read_dataset_paths_multi(self):
+        self._root = self._opt.data_dir
+        self._imgs_dir = os.path.join(self._root, self._opt.images_folder)
+
+        # read ids
+        use_ids_filepath = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
+        self._ids = self._read_ids(use_ids_filepath)
+
+        # read aus
+        conds_folderpath = self._opt.aus_folder
+        folders = next(os.walk(conds_folderpath))[1]
+	self._conds=dict()
+        for folder in folders:
+            folder_path = os.path.join(conds_folderpath, folder)
+            files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.pkl')]
+            for f in files:
+                conds = self._read_conds(os.path.join(folder_path, f))
+                self._conds.update(conds)
 
         self._ids = list(set(self._ids).intersection(set(self._conds.keys())))
 
@@ -78,13 +105,13 @@ class AusDataset(DatasetBase):
 
     def _create_transform(self):
         if self._is_for_train:
-            transform_list = [transforms.RandomHorizontalFlip(),
+            transform_list = [transforms.Resize(size=(self._opt.image_size, self._opt.image_size)), transforms.RandomHorizontalFlip(),
                               transforms.ToTensor(),
                               transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                                    std=[0.5, 0.5, 0.5]),
                               ]
         else:
-            transform_list = [transforms.ToTensor(),
+            transform_list = [transforms.Resize(size=(self._opt.image_size, self._opt.image_size)), transforms.ToTensor(),
                               transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                                    std=[0.5, 0.5, 0.5]),
                               ]
@@ -100,7 +127,16 @@ class AusDataset(DatasetBase):
 
     def _get_cond_by_id(self, id):
         if id in self._conds:
-            return self._conds[id]/5.0
+            cond = self._conds[id]
+            if cond.shape[0]==0:
+                return None
+            minV = np.amin(cond)
+            maxV = np.amax(cond)
+            if minV!=maxV:
+                cond -= minV
+                cond /= (maxV - minV)
+            #cond = self._conds[id]/5.0
+            return cond
         else:
             return None
 
@@ -113,5 +149,9 @@ class AusDataset(DatasetBase):
         while cond is None:
             rand_sample_id = self._ids[random.randint(0, self._dataset_size - 1)]
             cond = self._get_cond_by_id(rand_sample_id)
-            cond += np.random.uniform(-0.1, 0.1, cond.shape)
+        cond += np.random.uniform(-0.1, 0.1, cond.shape)
+        minV = np.amin(cond)
+        maxV = np.amax(cond)
+        cond -= minV
+        cond /= (maxV - minV)
         return cond

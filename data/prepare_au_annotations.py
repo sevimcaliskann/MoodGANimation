@@ -32,7 +32,7 @@ def main():
 
     if not os.path.isdir(args.output_path):
         os.makedirs(args.output_path)
-    save_dict(data, os.path.join(args.output_path, "aus"))
+    save_dict(data, os.path.join(args.output_path, "aus_openface"))
 
 
 if __name__ == '__main__':

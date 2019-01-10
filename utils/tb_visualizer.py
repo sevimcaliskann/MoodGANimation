@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import time
+import torch
 from . import util
 from tensorboardX import SummaryWriter
 
@@ -23,14 +24,14 @@ class TBVisualizer:
 
     def display_current_results(self, visuals, it, is_train, save_visuals=False):
         for label, image_numpy in visuals.items():
-            sum_name = '{}/{}'.format('Train' if is_train else 'Test', label)
-            self._writer.add_image(sum_name, image_numpy, it)
-
-            if save_visuals:
-                util.save_image(image_numpy,
+            if len(image_numpy.shape)==3:
+                tmp = np.transpose(image_numpy, (2,0,1)).astype(np.float32)
+                sum_name = '{}/{}'.format('Train' if is_train else 'Test', label)
+                self._writer.add_image(tag = sum_name, img_tensor = torch.from_numpy(tmp)/255, global_step=it)
+                if save_visuals:
+                    util.save_image(image_numpy,
                                 os.path.join(self._opt.checkpoints_dir, self._opt.name,
                                              'event_imgs', sum_name, '%08d.png' % it))
-
         self._writer.export_scalars_to_json(self._tb_path)
 
     def plot_scalars(self, scalars, it, is_train):
