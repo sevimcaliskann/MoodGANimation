@@ -56,8 +56,7 @@ def download_image(line):
 
 def read_aus_from_xlsx(filepath ='/srv/glusterfs/csevim/datasets/emotionet/EmotioNet_FACS_aws_without_passw.xlsx', make_unknown_zero=False):
     d = klepto.archives.dir_archive(os.path.join(os.path.dirname(filepath), 'dataset'), cached=True, serialized=True)
-    au_ids = np.array([1,2,4,5,6,9,12,17,20,25,26])
-    #au_ids = np.array([1, 2, 4, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20, 23, 25, 26, 45])
+    au_ids = np.array([1, 2, 4, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20, 23, 25, 26, 45])
     au_ids += 1
     xl_file = pd.ExcelFile(filepath)
     for sheet_name in xl_file.sheet_names:
@@ -72,22 +71,21 @@ def read_aus_from_xlsx(filepath ='/srv/glusterfs/csevim/datasets/emotionet/Emoti
       d.dump()
       d.clear()
 
-def create_dataset(mypath='/srv/glusterfs/csevim/datasets/emotionet/emotioNet_challenge_files_server_challenge_1.2_aws', make_unknown_zero=False):
+def create_dataset(mypath='/srv/glusterfs/csevim/datasets/emotionet/emotioNet_challenge_files_server_challenge_1.2_aws'):
     if not os.path.exists(os.path.join(mypath, 'dataset')):
         os.makedirs(os.path.join(mypath, 'dataset'))
     d = klepto.archives.dir_archive(os.path.join(mypath, 'dataset'), cached=True, serialized=True)
     txts_path = os.path.join(mypath, "txts")
     files = [f for f in os.listdir(txts_path) if os.path.isfile(os.path.join(txts_path, f)) and f.endswith('.txt')]
     for f in tqdm(files):
-        append_to_dataset(d, os.path.join(txts_path, f), make_unknown_zero)
+        append_to_dataset(d, os.path.join(txts_path, f))
 
 def append_to_dataset(archive, mypath = '/srv/glusterfs/csevim/datasets/emotionet/emotioNet_challenge_files_server_challenge_1.2_aws/dataFile_1001.txt', make_unknown_zero= False ):
     with open(mypath, 'r') as content_file:
         content = content_file.read()
     rows = content.split('\n')[:-1]
     names = np.array([row.split('\t')[0].split('/')[-1][:-4] for row in rows], dtype=np.unicode)
-    au_ids = np.array([1,2,4,5,6,9,12,17,20,25,26])
-    #au_ids = np.array([1, 2, 4, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20, 23, 25, 26, 45])
+    au_ids = np.array([1, 2, 4, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20, 23, 25, 26, 45])
     au_ids += 1
     aus = np.array([np.take(row.split('\t'), au_ids) for row in rows], dtype=np.int32)
     if make_unknown_zero:
@@ -131,15 +129,14 @@ def save_train_test_ids(train_ratio = 0.8, filepath ='/srv/glusterfs/csevim/data
         names = np.array([row.split('\t')[0].split('/')[-1] for row in rows], dtype=np.unicode)
     indices = np.arange(len(names))
     np.random.shuffle(indices)
-    indices = indices[:250000]
     train_num = int(len(indices)*train_ratio)
     train_ids = indices[:train_num]
     test_ids = indices[train_num:]
     train_samples = names[train_ids]
     test_samples = names[test_ids]
 
-    save_to_csv('train_ids_frac.csv', train_samples)
-    save_to_csv('test_ids_frac.csv', test_samples)
+    save_to_csv('train_ids_whole.csv', train_samples)
+    save_to_csv('test_ids_whole.csv', test_samples)
 
 def save_to_csv(path, data):
     if not os.path.exists(path):
@@ -153,16 +150,15 @@ def save_to_csv(path, data):
 
 def save_test_train_multi(mypath='/srv/glusterfs/csevim/datasets/emotionet/emotioNet_challenge_files_server_challenge_1.2_aws/txts', train_ratio=0.8):
     files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f)) and f.endswith('.txt')]
-    names = np.array([])
+    names = []
     for f in tqdm(files):
-	filepath = os.path.join(mypath, f)
         with open(filepath, 'r') as content_file:
             content = content_file.read()
         rows = content.split('\n')[:-1]
-        if names.size==0:
+        if len(names)==0:
             names = np.array([row.split('\t')[0].split('/')[-1] for row in rows], dtype=np.unicode)
         else:
-            names = np.concatenate((names, np.array([row.split('\t')[0].split('/')[-1] for row in rows], dtype=np.unicode)), axis=0)
+            names = np.concatenate(np.array([row.split('\t')[0].split('/')[-1] for row in rows], dtype=np.unicode), axis=0)
     indices = np.arange(len(names))
     np.random.shuffle(indices)
     indices = indices[:250000]

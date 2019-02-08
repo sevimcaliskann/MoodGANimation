@@ -76,7 +76,7 @@ class GANimation(BaseModel):
 
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
-        self._loss_g_cond = Variable(self._Tensor([0]))
+        #self._loss_g_cond = Variable(self._Tensor([0]))
         self._loss_g_cyc = Variable(self._Tensor([0]))
         self._loss_g_mask_1 = Variable(self._Tensor([0]))
         self._loss_g_mask_2 = Variable(self._Tensor([0]))
@@ -270,6 +270,11 @@ class GANimation(BaseModel):
                self._loss_g_mask_1 + self._loss_g_mask_2 + \
                self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth
 
+        #return self._loss_g_masked_fake + \
+               #self._loss_g_cyc + \
+               #self._loss_g_mask_1 + self._loss_g_mask_2 + \
+               #self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth
+
     def _forward_D(self):
         # generate fake images
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
@@ -287,6 +292,7 @@ class GANimation(BaseModel):
 
         # combine losses
         return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_imgs_masked
+        #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
     def _gradinet_penalty_D(self, fake_imgs_masked):
         # interpolate sample

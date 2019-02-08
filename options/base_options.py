@@ -12,10 +12,12 @@ class BaseOptions():
         self._parser.add_argument('--data_dir', type=str, help='path to dataset')
         self._parser.add_argument('--train_ids_file', type=str, default='train_ids.csv', help='file containing train ids')
         self._parser.add_argument('--test_ids_file', type=str, default='test_ids.csv', help='file containing test ids')
-        self._parser.add_argument('--images_folder', type=str, default='imgs', help='images folder')
-        self._parser.add_argument('--aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
+        self._parser.add_argument('--train_images_folder', type=str, default='imgs', help='train images folder')
+	self._parser.add_argument('--test_images_folder', type=str, default='imgs', help='test images folder')
+        self._parser.add_argument('--training_aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
+        self._parser.add_argument('--test_aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
         self._parser.add_argument('--aus_folder', type=str, default='aus', help='file containing samples aus')
-
+        self._parser.add_argument('--face_detection_model', type=str, default='./face_crop_model/mmod_human_face_detector.dat', help='pretrained cnn model for face detection')
         self._parser.add_argument('--load_epoch', type=int, default=-1, help='which epoch to load? set to -1 to use latest cached model')
         self._parser.add_argument('--batch_size', type=int, default=4, help='input batch size')
         self._parser.add_argument('--image_size', type=int, default=128, help='input image size')
@@ -28,6 +30,7 @@ class BaseOptions():
         self._parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         self._parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
         self._parser.add_argument('--do_saturate_mask', action="store_true", default=False, help='do use mask_fake for mask_cyc')
+        self._parser.add_argument('--face_gpu_id', type=str, default='8', help='gpu for pretrained cnn model for face detection')
 
 
 
@@ -86,6 +89,13 @@ class BaseOptions():
             id = int(str_id)
             if id >= 0:
                 self._opt.gpu_ids.append(id)
+
+        str_ids = self._opt.face_gpu_id.split(',')
+        self._opt.face_gpu_id = []
+        for str_id in str_ids:
+            id = int(str_id)
+            if id >= 0:
+                self._opt.face_gpu_id.append(id)
 
         # set gpu ids
         if len(self._opt.gpu_ids) > 0:

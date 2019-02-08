@@ -24,21 +24,23 @@ class Train:
         self._dataset_test_size = len(data_loader_test)
         print('#train images = %d' % self._dataset_train_size)
         print('#test images = %d' % self._dataset_test_size)
+        print('TRAIN IMAGES FOLDER = %s' % data_loader_train._dataset._imgs_dir)
+        print('TEST IMAGES FOLDER = %s' % data_loader_test._dataset._imgs_dir)
 
         self._model = ModelsFactory.get_by_name(self._opt.model, self._opt)
         self._tb_visualizer = TBVisualizer(self._opt)
         self._writer = SummaryWriter()
 
 
-        #self._input_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._fake_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._rec_real_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._fake_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._fake_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._rec_real_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._cyc_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._real_conds = list()
-        #self._desired_conds = list()
+        self._input_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._fake_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._rec_real_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._fake_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._fake_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._rec_real_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._cyc_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._real_conds = list()
+        self._desired_conds = list()
 
         self._train()
 
@@ -70,8 +72,9 @@ class Train:
                 self._model.update_learning_rate()
 
 
-	#self._writer.add_embedding(self._fake_imgs, metadata=self._desired_conds, label_img=self._input_imgs, tag='desired_conds_fake')
+	    #self._writer.add_embedding(self._fake_imgs, metadata=self._desired_conds, label_img=self._input_imgs, tag='desired_conds_fake')
         #self._writer.add_embedding(self._rec_real_imgs, metadata=self._real_conds, label_img=self._fake_imgs, tag='real_conds_rec_real')
+        #self._writer.close()
         #self._writer.add_embedding(self._rec_real_imgs, metadata=self._desired_conds, label_img=self._input_imgs, tag='desired_conds_rec_real')
         #self._writer.add_embedding(self._rec_real_imgs, metadata=self._real_conds, label_img=self._input_imgs, tag='reconstruction_with_real_conds')
 
@@ -115,18 +118,28 @@ class Train:
     def _display_terminal(self, iter_start_time, i_epoch, i_train_batch, visuals_flag):
         errors = self._model.get_current_errors()
 
-        for key in errors.keys():
+        '''for key in errors.keys():
             self._writer.add_scalar('data/%s' % key, errors[key], i_epoch*self._opt.batch_size + i_train_batch)
-        self._writer.add_scalars('data/errors', errors, i_epoch*self._opt.batch_size + i_train_batch)
+        self._writer.add_scalars('data/errors', errors, i_epoch*self._opt.batch_size + i_train_batch)'''
 
 
         t = (time.time() - iter_start_time) / self._opt.batch_size
         self._tb_visualizer.print_current_train_errors(i_epoch, i_train_batch, self._iters_per_epoch, errors, t, visuals_flag)
+        '''for name, param in self._model._G.state_dict().items():
+            if param.grad == None:
+                continue
+            print('Generator params: ', name)
+            self._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)
+        for name, param in self._model._D.state_dict().items():
+            if param.grad==None:
+                continue
+            print('Discriminator params: ', name)
+            self._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)'''
 
     def _display_visualizer_train(self, total_steps):
         visuals = self._model.get_current_visuals()
 
-        '''tmp = np.transpose(visuals['1_input_img'], (2,0,1)).astype(np.float32)
+        tmp = np.transpose(visuals['1_input_img'], (2,0,1)).astype(np.float32)
         torch.cat((self._input_imgs, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
         tmp = np.transpose(visuals['2_fake_img'], (2,0,1)).astype(np.float32)
@@ -151,13 +164,11 @@ class Train:
         self._real_conds.append(tmp.tolist())
 
         tmp = visuals['9_desired_cond']
-        self._desired_conds.append(tmp.tolist())'''
+        self._desired_conds.append(tmp.tolist())
 
-        #for name, param in self._model._G.parameters():
-        #    self._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)
-        #for name, param in self._model._D.parameters():
-        #    self._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)
-        self._tb_visualizer.display_current_results(self._model.get_current_visuals(), total_steps, is_train=True)
+
+
+        #self._tb_visualizer.display_current_results(self._model.get_current_visuals(), total_steps, is_train=True)
         #self._tb_visualizer.plot_scalars(self._model.get_current_errors(), total_steps, is_train=True)
         #self._tb_visualizer.plot_scalars(self._model.get_current_scalars(), total_steps, is_train=True)
 
