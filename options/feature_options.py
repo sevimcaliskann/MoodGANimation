@@ -11,4 +11,5 @@ class FeatureOptions(BaseOptions):
         self._parser.add_argument('--input_file', type=str, default='./output', help='the path for the file which keeps the names of images')
         self._parser.add_argument('--input_folder', type=str, default='./output', help='folder where images are stored')
         self._parser.add_argument('--aus_file', type=str, default='./output', help='file where action unit values are stored')
+        self._parser.add_argument('--layers','--list', action='append', help='<Required> Set flag', required=True)
         self.is_train = False

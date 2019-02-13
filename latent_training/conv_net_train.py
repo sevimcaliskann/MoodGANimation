@@ -16,62 +16,9 @@ from networks.networks import NetworkBase
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from sklearn.utils.class_weight import compute_class_weight
-from matplotlib import pyplot as plt
-from sklearn.metrics import roc_curve, roc_auc_score, auc
-from sklearn.preprocessing import label_binarize
-from sklearn.multiclass import OneVsRestClassifier
-from scipy import interp
-
-
-def plot_consuion_matrix(y_target, y_pred, save_dir):
-    labels = ['Angrily disgusted', 'Angrily surprised', 'Angry', 'Appalled', 'Awed', 'Disgusted', 'Fearful', 'Fearfully angry', 'Fearfully surprised', 'Happily disgusted', 'Happily surprised', 'Happy', 'Sad', 'Sadly angry', 'Sadly disgusted', 	'Surprised']
-    cm = confusion_matrix(y_target, y_pred, np.arange(16))
-    fig = plt.figure(figsize=(12, 10))
-    ax = fig.add_subplot(111)
-    cax = ax.matshow(cm)
-    plt.title('Confusion matrix of the classifier')
-    fig.colorbar(cax)
-    ax.set_xticklabels([''] + labels, fontsize=8)
-    ax.set_yticklabels([''] + labels, fontsize=8)
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.savefig(os.path.join(save_dir, 'Confusion_Matrix.png'))
-
-def plot_roc_curves(y_target, y_predict, cls, save_dir):
-    labels = ['Angrily disgusted', 'Angrily surprised', 'Angry', 'Appalled', 'Awed', 'Disgusted', 'Fearful', 'Fearfully angry', 'Fearfully surprised', 'Happily disgusted', 'Happily surprised', 'Happy', 'Sad', 'Sadly angry', 'Sadly disgusted', 	'Surprised']
-    y_target = label_binarize(y_target, classes=cls)
-    y_predict = label_binarize(y_predict, classes=cls)
-    n_classes = y_target.shape[1]
-
-    # Compute ROC curve and ROC area for each class
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
-    for i in range(n_classes):
-        fpr[i], tpr[i], _ = roc_curve(y_target[:, i], y_predict[:, i])
-        roc_auc[i] = auc(fpr[i], tpr[i])
-
-    # Compute micro-average ROC curve and ROC area
-    fpr["micro"], tpr["micro"], _ = roc_curve(y_target.ravel(), y_predict.ravel())
-    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-    plt.figure(figsize=(12, 10))
-    lw = 2
-    #plt.plot(fpr[2], tpr[2], color='darkorange',
-    #         lw=lw, label='ROC curve (area = %0.2f)' % roc_auc[2])
-    for i, label in zip(range(n_classes), labels):
-        plt.plot(fpr[i], tpr[i], lw=lw,
-                 label='ROC curve of class {0} (area = {1:0.2f})'
-                 ''.format(label, roc_auc[i]))
-    #plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver operating characteristic example')
-    plt.legend(loc="lower right")
-    plt.savefig(os.path.join(save_dir, 'ROC_Curves.png'))   # save the figure to file
-
-
+import utils.test_utils as tutils
+from PIL import Image
+#import utils.util as util
 
 
 
@@ -97,19 +44,27 @@ class FaceDataset(Dataset):
             file_name = os.path.join(self.root_dir, self.ids[idx]+'.pkl')
             with open(file_name, 'r') as file:
                 data = pickle.load(file)
-                data = np.concatenate((data['ResidualBlock:2'], data['ResidualBlock:3']), axis = 1)
-                data = np.squeeze(data, axis=0)
+                if 'attention' in self._opt.layers:
+                    att_reg = np.squeeze(np.array(data['attention'].cpu().detach().numpy()*255, dtype=np.uint8))
+                    att_reg = self.transform(Image.fromarray(att_reg))
+                    data = att_reg
+                elif 'img_reg' in self._opt.layers:
+                    img_reg = np.squeeze(np.array(data['img_reg'].cpu().detach().numpy()*255, dtype=np.uint8))
+                    img_reg = self.transform(Image.fromarray(img_reg))
+                    data = img_reg
+                elif not self._opt.layers:
+                    data = np.concatenate((data['ResidualBlock:2'], data['ResidualBlock:3']), axis = 1)
+		    data = np.squeeze(data, axis=0)
+                else:
+                    args = tuple(data[key] for key in self._opt.layers)
+                    data = np.concatenate(args, axis=1)
+		    data = np.squeeze(data, axis=0)
+
         else:
             file_name = os.path.join(self.root_dir, self.ids[idx]+'.jpg')
             data = io.imread(file_name)
         #label = self.labels[self.ids[idx]]
         label, = np.where(self.labels[self.ids[idx]]==1)
-        #label = label.astype('float')
-
-
-        #if self.transform:
-            #data = self.transform(data)
-
         sample = {'data': data, 'label': label}
 
 
@@ -175,14 +130,15 @@ class ConvNet(NetworkBase):
         super(ConvNet, self).__init__()
         self._opt = opt
         c_dim = 512 if self._opt.is_midfeatures_used else 3
+	#c_dim = 1
         layers = []
-        layers.append(nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.Conv2d(c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
         layers.append(nn.ReLU(inplace=True))
         layers.append(Flatten())
-        layers.append(nn.Linear(conv_dim*self._opt.image_size*self._opt.image_size, 64))
+        layers.append(nn.Linear(conv_dim*self._opt.image_size*self._opt.image_size, 1000))
         layers.append(nn.ReLU(inplace=True))
-        layers.append(nn.Linear(64, 16))
+        layers.append(nn.Linear(1000, 16))
         self.net = nn.Sequential(*layers)
         self.net.cuda()
         self.learning_rate = 1e-4
@@ -258,33 +214,34 @@ class ConvNetTrain:
         print('#train images = %d' % self.dataset_train_size)
         print('#test images = %d' % self.dataset_test_size)
 
-        self.writer = SummaryWriter()
+        self.writer = SummaryWriter(log_dir = self._opt.log_dir)
 
 
         self._save_dir = os.path.join(self._opt.checkpoints_dir, self._opt.name)
         if not os.path.exists(self._save_dir):
             os.makedirs(self._save_dir)
-        self.net = ConvNet(self._opt, weights = torch.FloatTensor(dataset_train.get_weights()).cuda())
+        #self.net = ConvNet(self._opt, weights = torch.FloatTensor(dataset_train.get_weights()).cuda())
+        self.net = ConvNet(self._opt)
 
         self.set_and_check_load_epoch()
         if self._opt.load_epoch > 0:
             self.load()
 
 
-        #self.train()
+        if self._opt.is_train==1:
+            self.train()
         self.eval()
 
 
-    def set_and_check_load_epoch(self):
+    def set_and_check_load_epoch(self, is_train = True):
         models_dir = os.path.join(self._opt.checkpoints_dir, self._opt.name)
         if os.path.exists(models_dir):
-            if self._opt.load_epoch == -1:
+            if self._opt.load_epoch == -1 or not is_train:
                 load_epoch = 0
                 for file in os.listdir(models_dir):
                     if file.startswith("net_epoch_"):
                         load_epoch = max(load_epoch, int(file.split('_')[2]))
                 self._opt.load_epoch = load_epoch
-                print('LOAD EPOCH: ', load_epoch)
             else:
                 found = False
                 for file in os.listdir(models_dir):
@@ -302,7 +259,7 @@ class ConvNetTrain:
         self._parser.add_argument('--train_ids_file', type=str, default='emotion_cat_urls.csv', help='file containing train ids')
         self._parser.add_argument('--test_ids_file', type=str, default='emotion_cat_urls.csv', help='file containing test ids')
         self._parser.add_argument('--imgs_dir', type=str, default='imgs', help='directory containing images')
-        self._parser.add_argument('--save_folder', type=str, default='/home/sevim/Downloads/master_thesis_study_documents/code-examples/GANimation/latent_training/dumb data', help='folder for saving models')
+        self._parser.add_argument('--save_folder', type=str, default='/scratch_net/zinc/csevim/apps/repos/GANimation/latent_training/convnet_models', help='folder for saving models')
         self._parser.add_argument('--checkpoints_dir', type=str, default='checkpoints', help='directory containing images')
         self._parser.add_argument('--name', type=str, default='experiment_1', help='name of training')
         self._parser.add_argument('--labels_file', type=str, default='emotion_cat_aws.xlsx', help='file containing train ids')
@@ -312,8 +269,11 @@ class ConvNetTrain:
         self._parser.add_argument('--is_midfeatures_used', type=int, default=-1, help='if it is 1, middle level features are used, otherwise images are used')
         self._parser.add_argument('--image_size', type=int, default=128, help='image size')
         self._parser.add_argument('--num_iters_validate', type = int, default = 2, help = '# batches to use when validating')
-        self._parser.add_argument('--gpu_ids', type = int, default = 0, help = 'gpu ids')
+        self._parser.add_argument('--gpu_ids', type = int, default = 1, help = 'gpu ids')
         self._parser.add_argument('--load_epoch', type=int, default=-1, help='which epoch to load? set to -1 to use latest cached model')
+        self._parser.add_argument('--log_dir', type=str, default='/scratch_net/zinc/csevim/apps/repos/GANimation/latent_training/convnet_tensorboard_log', help='folder for saving models')
+        self._parser.add_argument('--layers','--list', action='append', help='<Required> Set flag', required=True)
+        self._parser.add_argument('--is_train', type=int, default=1, help='in training mode use 1, else any number')
 
 
     def train(self):
@@ -421,14 +381,6 @@ class ConvNetTrain:
         # set model back to train
         self.net.train()
 
-        #print('PARAM KEYS: ', self.net.net.state_dict().keys())
-
-        #for name, param in self.net.net.state_dict().items():
-        #    if param.grad == None:
-        #        continue
-        #    print('params: ', name)
-        #self.writer.add_histogram('label_grad', self.label_grad, i_epoch*self._iters_per_epoch + i_train_batch)
-
     def save_optimizer(self, optimizer, optimizer_label, epoch_label):
         save_filename = 'opt_epoch_%s_id_%s.pth' % (epoch_label, optimizer_label)
         save_path = os.path.join(self._save_dir, save_filename)
@@ -440,7 +392,7 @@ class ConvNetTrain:
         assert os.path.exists(
             load_path), 'Weights file not found. Have you trained a model!? We are not providing one' % load_path
 
-        optimizer.load_state_dict(torch.load(load_path, map_location='cuda:0'))
+        optimizer.load_state_dict(torch.load(load_path))
         print 'loaded optimizer: %s' % load_path
 
     def save_network(self, network, network_label, epoch_label):
@@ -455,7 +407,7 @@ class ConvNetTrain:
         assert os.path.exists(
             load_path), 'Weights file not found. Have you trained a model!? We are not providing one' % load_path
         #network = torch.nn.DataParallel(network)
-        network.load_state_dict(torch.load(load_path, map_location='cuda:0'))
+        network.load_state_dict(torch.load(load_path))
         print 'loaded net: %s' % load_path
 
 
@@ -476,8 +428,8 @@ class ConvNetTrain:
         print(message)
 
 
-    def eval(self):
-        self.set_and_check_load_epoch()
+    def eval(self, load_last_epoch = True):
+        self.set_and_check_load_epoch(is_train = not load_last_epoch)
         if self._opt.load_epoch > 0:
             self.load()
 
@@ -511,24 +463,14 @@ class ConvNetTrain:
 
         y_predicts = np.array(y_predicts)
         y_targets = np.squeeze(np.array(y_targets), axis=1)
-        print('Accuracy: ', float(accuracy) /self.dataset_test_size)
-        conf_mat = confusion_matrix(y_targets, y_predicts)
-        print('Confusion matrix: ', conf_mat)
-        plot_consuion_matrix(y_targets, y_predicts, self._opt.save_folder)
-        plot_roc_curves(y_targets, y_predicts, np.arange(16), self._opt.save_folder)
-
-
-
-        #fpr, tpr, thresholds = roc_curve(y_targets, y_predicts, pos_label=1)
-        #auc = roc_auc_score(y_targets, y_predicts)
-        #fig, ax = plt.subplots()
-        #ax.plot(fpr, tpr)
-        #ax.plot([0, 1], [0, 1], color='navy', linestyle='--', label='random')
-        #plt.title('AUC: {auc}')
-        #ax.set_xlabel('False positive rate')
-        #ax.set_ylabel('True positive rate')
-        #fig.savefig('plots.pdf')   # save the figure to file
-        #plt.close(fig)
+        accuracy = float(accuracy) /self.dataset_test_size
+        print('Accuracy: ', accuracy)
+        if(load_last_epoch):
+            conf_mat = confusion_matrix(y_targets, y_predicts)
+            print('Confusion matrix: ', conf_mat)
+            tutils.save_confusion_matrix(y_targets, y_predicts, self._opt.save_folder)
+            tutils.plot_roc_curves(y_targets, y_predicts, np.arange(16), self._opt.save_folder)
+        return accuracy
 
 
 

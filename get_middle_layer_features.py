@@ -1,3 +1,5 @@
+import torch
+import torchvision.transforms as transforms
 import os
 import argparse
 import glob
@@ -6,8 +8,6 @@ from utils import face_utils
 from utils import cv_utils
 import face_recognition
 from PIL import Image
-import torchvision.transforms as transforms
-import torch
 import pickle
 import numpy as np
 from models.models import ModelsFactory
@@ -26,12 +26,16 @@ class MiddleLayerFeatures:
         self.ids = self.read_ids(os.path.join(self._opt.data_dir, self._opt.input_file))
         self.conds = self.read_conds(os.path.join(self._opt.data_dir, self._opt.aus_file))
         self.ids = list(set(self.ids).intersection(set(self.conds.keys())))
+        self.layers = self._opt.layers
         print('#images: ', len(self.ids))
+        if not os.path.exists(self._opt.output_dir):
+            os.makedirs(self._opt.output_dir)
 
         self._transform = transforms.Compose([transforms.ToTensor(),
                                               transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                                                    std=[0.5, 0.5, 0.5])
                                               ])
+
     def read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
         return [id[:-4] for id in ids]
@@ -43,6 +47,9 @@ class MiddleLayerFeatures:
     def get_features_all(self):
         #self.features = dict()
         for id in tqdm(self.ids):
+            output_path = os.path.join(self._opt.output_dir, id+'.pkl')
+            if os.path.exists(output_path):
+                continue
             cond = self.conds[id]
             filepath = os.path.join(self._opt.data_dir, self._opt.images_folder)
             filepath = os.path.join(filepath, id+'.jpg')
@@ -50,7 +57,6 @@ class MiddleLayerFeatures:
             if features is None:
                 continue
             #new_id = id
-            output_path = os.path.join(self._opt.output_dir, id+'.pkl')
             self.save_features(features, output_path)
             print('Saved features at: ', output_path)
             #self.features[new_id] = features
@@ -107,9 +113,17 @@ class MiddleLayerFeatures:
             key = self.get_name(dump_dict, layer)
             f = layer(face)
             dump_dict[key] = f
-            if key=='ResidualBlock:2' or key=='ResidualBlock:3':
+            #if key=='ResidualBlock:2' or key=='ResidualBlock:3':
+            if key in self.layers:
                 features[key] = f.cpu().data.numpy()
             face = f
+
+        img_reg = self._model._G.img_reg(face)
+        att_reg = self._model._G.attetion_reg(face)
+        if 'attention' in self.layers:
+            features['attention'] = att_reg
+        if 'img_reg' in self.layers:
+            features['img_reg'] = img_reg
 
         return features
 

@@ -5,62 +5,13 @@ from sklearn import linear_model
 from collections import OrderedDict
 import argparse
 import pandas as pd
-import pickle
+import cPickle as pickle
 from sklearn.metrics import confusion_matrix
 import cv2
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import log_loss
 from tensorboardX import SummaryWriter
-from sklearn.metrics import roc_curve, roc_auc_score
-from matplotlib import pyplot as plt
-
-def plot_consuion_matrix(y_target, y_pred, save_dir):
-    labels = ['Angrily disgusted', 'Angrily surprised', 'Angry', 'Appalled', 'Awed', 'Disgusted', 'Fearful', 'Fearfully angry', 'Fearfully surprised', 'Happily disgusted', 'Happily surprised', 'Happy', 'Sad', 'Sadly angry', 'Sadly disgusted', 	'Surprised']
-    cm = confusion_matrix(y_target, y_pred, np.arange(16))
-    fig = plt.figure(figsize=(12, 10))
-    ax = fig.add_subplot(111)
-    cax = ax.matshow(cm)
-    plt.title('Confusion matrix of the classifier')
-    fig.colorbar(cax)
-    ax.set_xticklabels([''] + labels, fontsize=8)
-    ax.set_yticklabels([''] + labels, fontsize=8)
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.savefig(os.path.join(save_dir, 'Confusion_Matrix.png'))
-
-def plot_roc_curves(y_target, y_predict, cls, save_dir):
-    labels = ['Angrily disgusted', 'Angrily surprised', 'Angry', 'Appalled', 'Awed', 'Disgusted', 'Fearful', 'Fearfully angry', 'Fearfully surprised', 'Happily disgusted', 'Happily surprised', 'Happy', 'Sad', 'Sadly angry', 'Sadly disgusted', 	'Surprised']
-    y_target = label_binarize(y_target, classes=cls)
-    y_predict = label_binarize(y_predict, classes=cls)
-    n_classes = y_target.shape[1]
-
-    # Compute ROC curve and ROC area for each class
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
-    for i in range(n_classes):
-        fpr[i], tpr[i], _ = roc_curve(y_target[:, i], y_predict[:, i])
-        roc_auc[i] = auc(fpr[i], tpr[i])
-
-    # Compute micro-average ROC curve and ROC area
-    fpr["micro"], tpr["micro"], _ = roc_curve(y_target.ravel(), y_predict.ravel())
-    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-    plt.figure(figsize=(12, 10))
-    lw = 2
-    #plt.plot(fpr[2], tpr[2], color='darkorange',
-    #         lw=lw, label='ROC curve (area = %0.2f)' % roc_auc[2])
-    for i, label in zip(range(n_classes), labels):
-        plt.plot(fpr[i], tpr[i], lw=lw,
-                 label='ROC curve of class {0} (area = {1:0.2f})'
-                 ''.format(label, roc_auc[i]))
-    #plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver operating characteristic example')
-    plt.legend(loc="lower right")
-    plt.savefig(os.path.join(save_dir, 'ROC_Curves.png'))   # save the figure to file
+import utils.test_utils as tutils
 
 
 class SvmTrain:
@@ -74,13 +25,19 @@ class SvmTrain:
         print('#train images = %d' % len(self.train_ids))
         print('#test images = %d' % len(self.test_ids))
 
-        self.weights = self.get_weights()
-        self.weights = dict(zip(np.arange(16), self.weights))
-        self.clf = linear_model.SGDClassifier(max_iter=1000, tol=1e-3, class_weight=self.weights, loss = 'modified_huber', n_jobs = 8, warm_start=True)
+        self.set_and_check_load_epoch()
 
-        self.writer = SummaryWriter(log_dir='svm_record')
+        if(self._opt.load_epoch==0):
+            self.weights = self.get_weights()
+            self.weights = dict(zip(np.arange(16), self.weights))
+            self.clf = linear_model.SGDClassifier(max_iter=1000, tol=1e-3, class_weight=self.weights, loss = 'modified_huber', n_jobs = 8, warm_start=True)
+        else:
+            self.load_classifier(self._opt.load_epoch)
 
-        self.train()
+        self.writer = SummaryWriter(log_dir=self._opt.log_dir)
+
+        if self._opt.is_train==1:
+            self.train()
         self.eval()
 
 
@@ -89,12 +46,14 @@ class SvmTrain:
         self._parser.add_argument('--ids_file', type=str, default='emotion_cat_urls.csv', help='file containing train ids')
         self._parser.add_argument('--imgs_dir', type=str, default='imgs', help='directory containing images')
         self._parser.add_argument('--labels_file', type=str, default='emotion_cat_aws.xlsx', help='file containing train ids')
-        self._parser.add_argument('--save_folder', type=str, default='/home/sevim/Downloads/master_thesis_study_documents/code-examples/GANimation/latent_training/svm_models', help='folder for saving models')
-        self._parser.add_argument('--model_name', type=str, default='experiment_1', help='model_name')
+        self._parser.add_argument('--save_folder', type=str, default='/scratch_net/zinc/csevim/apps/repos/GANimation/latent_training/svm_models', help='folder for saving models')
         self._parser.add_argument('--batch_size', type=int, default=4, help='input batch size')
         self._parser.add_argument('--nepochs', type=int, default=4, help='number of epochs')
         self._parser.add_argument('--print_freq_s', type=int, default=60, help='frequency of showing training results on console')
         self._parser.add_argument('--is_midfeatures_used', type=int, default=-1, help='if it is 1, middle level features are used, otherwise images are used')
+        self._parser.add_argument('--load_epoch', type=int, default=-1, help='which epoch to load? set to -1 to use latest cached model')
+        self._parser.add_argument('--log_dir', type=str, default='/scratch_net/zinc/csevim/apps/repos/GANimation/latent_training/svm_tensorboard_log', help='folder for saving models')
+        self._parser.add_argument('--is_train', type=int, default=1, help='in training mode use 1, else any number')
 
     def read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
@@ -149,9 +108,11 @@ class SvmTrain:
             print('End of epoch %d / %d \t Time Taken: %d sec (%d min or %d h)' %
                   (i_epoch, self._opt.nepochs, time_epoch,
                    time_epoch / 60, time_epoch / 3600))
+
+            if i_epoch %100 == 0:
+                self.save_classifier(i_epoch)
         self.writer.close()
-        filename = os.path.join(self._opt.save_folder, self._opt.model_name + '.sav')
-        pickle.dump(self.clf, open(filename, 'wb'))
+
 
     def train_epoch(self, i_epoch):
         print('Iteration per epoch: ', self._iters_per_epoch)
@@ -162,13 +123,7 @@ class SvmTrain:
             y = [list(row).index(1) for row in y]
             iter_start_time = time.time()
             do_print_terminal = time.time() - self._last_print_time > self._opt.print_freq_s
-
-            # train model
-            #self.clf.warm_start = True
-            #self.clf.n_jobs = 8
             self.clf.partial_fit(x,y, np.arange(16))
-
-
 
             # display terminal
             if do_print_terminal:
@@ -229,8 +184,6 @@ class SvmTrain:
             label = list(label).index(1)
 
             y_predict = self.clf.predict(sample)
-            message = '(target: %d, prediction: %d) ' % (label, y_predict)
-            print(message)
             diff = abs(label - y_predict)
             error = error + np.sum(diff)
 
@@ -254,7 +207,47 @@ class SvmTrain:
         self.writer.add_scalar('svm_val_error', errors['val_error'], epoch*iters_per_epoch + i)
 
 
-    def eval(self):
+    def save_classifier(self, epoch_label):
+        save_filename = 'svm_epoch_%s.sav' % (epoch_label)
+        save_path = os.path.join(self._opt.save_folder, save_filename)
+        pickle.dump(self.clf, open(save_path, 'wb'))
+        print('Saved classifier to: ', save_path)
+
+    def load_classifier(self, epoch_label):
+        load_filename = 'svm_epoch_%s.sav' % (epoch_label)
+        load_path = os.path.join(self._opt.save_folder, load_filename)
+        assert os.path.exists(
+            load_path), 'Weights file not found. Have you trained a model!? We are not providing one' % load_path
+
+        self.clf = pickle.load(open(load_path, 'rb'))
+        print 'loaded optimizer: %s' % load_path
+
+
+
+    def set_and_check_load_epoch(self, is_train = True):
+        models_dir = self._opt.save_folder
+        if os.path.exists(models_dir):
+            if self._opt.load_epoch == -1 or not is_train:
+                load_epoch = 0
+                for file in os.listdir(models_dir):
+                    if file.startswith("svm_epoch_"):
+                        load_epoch = max(load_epoch, int(os.path.splitext(file)[0].split('_')[2]))
+                self._opt.load_epoch = load_epoch
+            else:
+                found = False
+                for file in os.listdir(models_dir):
+                    if file.startswith("svm_epoch_"):
+                        found = int(file.split('_')[2]) == self._opt.load_epoch
+                        if found: break
+                assert found, 'Model for epoch %i not found' % self._opt.load_epoch
+        else:
+            assert self._opt.load_epoch < 1, 'Model for epoch %i not found' % self._opt.load_epoch
+            self._opt.load_epoch = 0
+
+
+    def eval(self, load_last_epoch = True):
+        self.set_and_check_load_epoch(is_train=not load_last_epoch)
+        self.load_classifier(self._opt.load_epoch)
         accuracy = 0
         y_predicts = []
         y_targets = []
@@ -268,27 +261,17 @@ class SvmTrain:
 
             y_predict = self.clf.predict(sample)
             y_predicts.append(y_predict)
-            message = '(target: %d, prediction: %d) ' % (label, y_predict)
-            print(message)
             if label == y_predict:
                 accuracy = accuracy + 1
-        print('Accuracy: ', float(accuracy) / len(self.test_ids))
-        conf_mat = confusion_matrix(y_targets, y_predicts)
-        print('Confusion matrix: ', conf_mat)
-        plot_consuion_matrix(y_targets, y_predicts, self._opt.save_folder)
-        plot_roc_curves(y_targets, y_predicts, np.arange(16), self._opt.save_folder)
 
-
-        #fpr, tpr, thresholds = roc_curve(y_targets, y_predicts, pos_label=1)
-        #auc = roc_auc_score(y_targets, y_predicts)
-        #fig, ax = plt.subplots()
-        #ax.plot(fpr, tpr)
-        #ax.plot([0, 1], [0, 1], color='navy', linestyle='--', label='random')
-        #plt.title(f'AUC: {auc}')
-        #ax.set_xlabel('False positive rate')
-        #ax.set_ylabel('True positive rate')
-        #fig.savefig(os.path.join(self._opt.save_folder, 'plots.pdf'))   # save the figure to file
-        #plt.close(fig)
+        accuracy = float(accuracy) / len(self.test_ids)
+        print('Accuracy: ', accuracy)
+        if load_last_epoch:
+            conf_mat = confusion_matrix(y_targets, y_predicts)
+            print('Confusion matrix: ', conf_mat)
+            tutils.save_confusion_matrix(y_targets, y_predicts, self._opt.save_folder)
+            tutils.plot_roc_curves(y_targets, y_predicts, np.arange(16), self._opt.save_folder)
+        return accuracy
 
 
 

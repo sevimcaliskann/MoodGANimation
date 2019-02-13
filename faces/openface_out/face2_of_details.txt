@@ -1,0 +1,10 @@
+Input:/scratch/csevim/apps/repos/GANimation/faces/imgs/face2.jpg
+Input full path:/scratch/csevim/apps/repos/GANimation/faces/imgs/face2.jpg
+Camera parameters:703.125,703.125,360,405
+Output csv:face2.csv
+Gaze: 0
+AUs: 1
+Landmarks 2D: 0
+Landmarks 3D: 0
+Pose: 0
+Shape parameters: 0

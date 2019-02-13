@@ -83,7 +83,7 @@ class GANimation(BaseModel):
         self._loss_g_idt = Variable(self._Tensor([0]))
         self._loss_g_masked_fake = Variable(self._Tensor([0]))
         self._loss_g_masked_cond = Variable(self._Tensor([0]))
-        self._loss_g_cyc_cond = Variable(self._Tensor([0]))
+        #self._loss_g_cyc_cond = Variable(self._Tensor([0]))
         self._loss_g_mask_1_smooth = Variable(self._Tensor([0]))
         self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
         self._loss_rec_real_img_rgb = Variable(self._Tensor([0]))
@@ -240,8 +240,8 @@ class GANimation(BaseModel):
         rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
         rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
 
-        d_cyc_desired_img_masked_prob, d_cyc_desired_img_masked_cond = self._D.forward(rec_real_imgs)
-        self._loss_g_cyc_cond = self._criterion_D_cond(d_cyc_desired_img_masked_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
+        #d_cyc_desired_img_masked_prob, d_cyc_desired_img_masked_cond = self._D.forward(rec_real_imgs)
+        #self._loss_g_cyc_cond = self._criterion_D_cond(d_cyc_desired_img_masked_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
 
         # l_cyc(G(G(Ic1,c2), c1)*M)
         self._loss_g_cyc = self._criterion_cycle(rec_real_imgs, self._real_img) * self._opt.lambda_cyc
@@ -269,7 +269,7 @@ class GANimation(BaseModel):
             self._vis_batch_rec_real_img = util.tensor2im(rec_real_imgs.data, idx=-1)
 
         # combine losses
-        return self._loss_g_masked_fake + self._loss_g_masked_cond + self._loss_g_cyc_cond \
+        return self._loss_g_masked_fake + self._loss_g_masked_cond + \
                self._loss_g_cyc + \
                self._loss_g_mask_1 + self._loss_g_mask_2 + \
                self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth
@@ -331,7 +331,7 @@ class GANimation(BaseModel):
                                  #('g_cond', self._loss_g_cond.data[0]),
                                  ('g_mskd_fake', self._loss_g_masked_fake.detach()),
                                  ('g_mskd_cond', self._loss_g_masked_cond.detach()),
-                                 ('g_cyc_cond', self._loss_g_cyc_cond.detach()),
+                                 #('g_cyc_cond', self._loss_g_cyc_cond.detach()),
                                  ('g_cyc', self._loss_g_cyc.detach()),
                                  #('g_rgb', self._loss_rec_real_img_rgb.detach()),
                                  #('g_rgb_un', self._loss_g_unmasked_rgb.detach()),

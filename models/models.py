@@ -89,7 +89,7 @@ class BaseModel(object):
         assert os.path.exists(
             load_path), 'Weights file not found. Have you trained a model!? We are not providing one' % load_path
 
-        optimizer.load_state_dict(torch.load(load_path))
+        optimizer.load_state_dict(torch.load(load_path, map_location='cuda:0'))
         print 'loaded optimizer: %s' % load_path
 
     def _save_network(self, network, network_label, epoch_label):
@@ -103,8 +103,7 @@ class BaseModel(object):
         load_path = os.path.join(self._save_dir, load_filename)
         assert os.path.exists(
             load_path), 'Weights file not found. Have you trained a model!? We are not providing one' % load_path
-
-        network.load_state_dict(torch.load(load_path))
+        network.load_state_dict(torch.load(load_path, map_location='cuda:0'))
         print 'loaded net: %s' % load_path
 
     def update_learning_rate(self):

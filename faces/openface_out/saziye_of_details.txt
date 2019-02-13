@@ -1,0 +1,10 @@
+Input:/scratch/csevim/apps/repos/GANimation/faces/imgs/saziye.png
+Input full path:/scratch/csevim/apps/repos/GANimation/faces/imgs/saziye.png
+Camera parameters:507.031,507.031,247,301.5
+Output csv:saziye.csv
+Gaze: 0
+AUs: 1
+Landmarks 2D: 0
+Landmarks 3D: 0
+Pose: 0
+Shape parameters: 0
