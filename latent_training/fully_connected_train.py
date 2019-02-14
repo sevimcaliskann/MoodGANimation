@@ -297,7 +297,6 @@ class FullyConnectedNetTrain:
             do_print_terminal = time.time() - self._last_print_time > self._opt.print_freq_s
             self.net.network_set_input(train_batch)
             self.loss = self.net.optimize_parameters()
-	    print('loss: ', self.loss)
             #self.loss, self.label_grad = self.net.optimize_parameters()
             #print('label grad: ', label_grad)
 
