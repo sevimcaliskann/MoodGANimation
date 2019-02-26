@@ -210,7 +210,7 @@ class GANimation(BaseModel):
             self._B = self._input_real_img.size(0)
             self._real_img = Variable(self._input_real_img)
             self._real_cond = Variable(self._input_real_cond)
-	    self._real_emo = Variable(self._input_real_emo)
+            self._real_emo = Variable(self._input_real_emo)
             self._desired_cond = Variable(self._input_desired_cond)
 
             # train D
@@ -233,7 +233,7 @@ class GANimation(BaseModel):
 
     def _forward_G(self, keep_data_for_visuals):
         # generate fake images
-        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
+        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._real_emo)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
 
@@ -305,8 +305,8 @@ class GANimation(BaseModel):
         self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
 
         # combine losses
-        return self._loss_d_real  + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
-        #return self._loss_d_real + self._loss_d_cond + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
+        #return self._loss_d_real  + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
+        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
     def _gradinet_penalty_D(self, fake_imgs_masked):
