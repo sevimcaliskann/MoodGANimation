@@ -1,0 +1,7 @@
+latent_training/aus_training/*
+latent_training/convnet_models/*
+latent_training/convnet_tensorboard_log/*
+latent_training/fully_connected_models/*
+latent_training/fully_connected_tensorboard_log/*
+latent_training/svm_models/*
+latent_training/svm_tensorboard_log/*
