@@ -15,7 +15,7 @@ import os
 import numpy as np
 
 class AUsTrainer(NetworkBase):
-    def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6, batch_size=16, lambda_gp = 10, save_dir = '.'):
+    def __init__(self, image_size=128, conv_dim=64, c_dim=17, repeat_num=6, batch_size=16, lambda_gp = 10, save_dir = '.'):
         super(AUsTrainer, self).__init__()
         self._name = 'discriminator_wgan'
         self.c_dim = c_dim
@@ -50,6 +50,7 @@ class AUsTrainer(NetworkBase):
             out_aux = self.net(self._input_img).squeeze()
         else:
             out_aux = self.net(img).squeeze()
+
         loss = self._criterion(self._aus, out_aux)
         return out_aux, loss
 
@@ -57,6 +58,8 @@ class AUsTrainer(NetworkBase):
     def set_input(self, input):
         self._input_img.resize_(input['real_img'].size()).copy_(input['real_img'])
         self._aus.resize_(input['real_cond'].size()).copy_(input['real_cond'])
+        #self._input_img.resize_(input['data'].size()).copy_(input['data'])
+        #self._aus.resize_(input['label'].size()).copy_(input['label'])
 
 
         #if len(self._gpu_ids) > 0:
@@ -152,15 +155,15 @@ class AUsTrain:
 
 	checkpoints_dir = os.path.join(self._opt.checkpoints_dir, self._opt.name)
 	if not os.path.exists(checkpoints_dir):
-	    os.makedirs(checkpoints_dir)        
+	    os.makedirs(checkpoints_dir)
 	self.set_and_check_load_epoch()
         if self._opt.load_epoch > 0:
             self.load()
 
 
-        if self._opt.is_train==1:
+        '''if self._opt.is_train==1:
             self.train()
-        self.eval()
+        self.eval()'''
 
 
     def initialize(self):
@@ -369,4 +372,7 @@ class AUsTrain:
 
 
 if __name__ == "__main__":
-    AUsTrain()
+    aus_trainer = AUsTrain()
+    if aus_trainer._opt.is_train==1:
+        aus_trainer.train()
+    aus_trainer.eval()

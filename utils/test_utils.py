@@ -13,9 +13,10 @@ from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
 from scipy import interp
 import operator
+from sklearn.metrics import recall_score
 
 
-def save_confusion_matrix(y_target, y_pred, save_dir):
+def save_confusion_matrix(y_target, y_pred, save_dir, save_name = None):
     labels = ['Angrily disgusted', 'Angrily surprised', 'Angry', 'Appalled', 'Awed', 'Disgusted', 'Fearful', 'Fearfully angry', 'Fearfully surprised', 'Happily disgusted', 'Happily surprised', 'Happy', 'Sad', 'Sadly angry', 'Sadly disgusted', 	'Surprised']
     cm = confusion_matrix(y_target, y_pred, np.arange(16))
     plot_confusion_matrix(cm, labels, normalize=False)
@@ -30,7 +31,12 @@ def save_confusion_matrix(y_target, y_pred, save_dir):
     ax.yaxis.set_ticklabels(labels, fontsize=6)
     plt.xlabel('Predicted')
     plt.ylabel('True')'''
-    plt.savefig(os.path.join(save_dir, 'Confusion_Matrix.png'))
+    if save_name is None:
+        plt.savefig(os.path.join(save_dir, 'Confusion_Matrix.png'))
+    else:
+        plt.savefig(os.path.join(save_dir, save_name))
+    recall = recall_score(y_target, y_pred, average = 'macro', labels = np.arange(16))
+    print('Recall Score: ', recall)
 
 
 def plot_confusion_matrix(cm,
@@ -111,7 +117,7 @@ def plot_confusion_matrix(cm,
     plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
     #plt.show()
 
-def plot_roc_curves(y_target, y_predict, cls, save_dir):
+def plot_roc_curves(y_target, y_predict, cls, save_dir, save_name = None):
     labels = ['Angrily disgusted', 'Angrily surprised', 'Angry', 'Appalled', 'Awed', 'Disgusted', 'Fearful', 'Fearfully angry', 'Fearfully surprised', 'Happily disgusted', 'Happily surprised', 'Happy', 'Sad', 'Sadly angry', 'Sadly disgusted', 	'Surprised']
     y_target = label_binarize(y_target, classes=cls)
     y_predict = label_binarize(y_predict, classes=cls)
@@ -143,7 +149,12 @@ def plot_roc_curves(y_target, y_predict, cls, save_dir):
     plt.ylabel('True Positive Rate')
     plt.title('Receiver operating characteristic example')
     plt.legend(loc="lower right")
-    plt.savefig(os.path.join(save_dir, 'ROC_Curves.png'))   # save the figure to file
+
+    if save_name is None:
+        plt.savefig(os.path.join(save_dir, 'ROC_Curves.png'))   # save the figure to file
+    else:
+        plt.savefig(os.path.join(save_dir, save_name))
+
 
 
 

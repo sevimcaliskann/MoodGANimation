@@ -4,7 +4,7 @@ python /scratch_net/zinc/csevim/apps/repos/GANimation/get_middle_layer_features.
 --data_dir /srv/glusterfs/csevim/datasets/emotionet/emotion_cat \
 --images_folder imgs \
 --input_file emotion_cat_all.csv \
---output_dir /srv/glusterfs/csevim/datasets/emotionet/emotion_cat/output_second_try \
+--output_dir /srv/glusterfs/csevim/datasets/emotionet/emotion_cat/output_all_zero \
 --output_file features.pkl \
 --aus_file aus_emotion_cat.pkl \
 --checkpoints_dir /srv/glusterfs/csevim/datasets/emotionet/checkpoints \
@@ -13,4 +13,5 @@ python /scratch_net/zinc/csevim/apps/repos/GANimation/get_middle_layer_features.
 --layers 'ResidualBlock:3' \
 --layers 'ResidualBlock:2' \
 --layers 'attention' \
---load_epoch -1
+--load_epoch -1 \
+--gpu_ids $SGE_GPU

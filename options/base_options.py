@@ -15,6 +15,8 @@ class BaseOptions():
         self._parser.add_argument('--train_images_folder', type=str, default='imgs', help='train images folder')
 	self._parser.add_argument('--test_images_folder', type=str, default='imgs', help='test images folder')
         self._parser.add_argument('--training_aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
+	self._parser.add_argument('--emo_training_file', type=str, default='emos_affectnet_train.csv', help='file containing samples emotion categories')
+	self._parser.add_argument('--emo_test_file', type=str, default='emos_affectnet_test.csv', help='file containing samples emotion categories')
         self._parser.add_argument('--test_aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
         self._parser.add_argument('--aus_folder', type=str, default='aus', help='file containing samples aus')
         self._parser.add_argument('--face_detection_model', type=str, default='./face_crop_model/mmod_human_face_detector.dat', help='pretrained cnn model for face detection')
