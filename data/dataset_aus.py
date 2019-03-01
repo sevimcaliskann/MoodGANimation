@@ -7,6 +7,7 @@ import random
 import numpy as np
 import pickle
 from utils import cv_utils
+from utils import test_utils as tutils
 #import face_recognition
 #import dlib
 #from skimage import io
@@ -18,6 +19,7 @@ class AusDataset(DatasetBase):
         self._name = 'AusDataset'
 
         self._read_dataset_paths()
+        self._aus_dict, self._label = tutils.create_aus_lookup()
 
         # read dataset
         #if self._opt.aus_file=='-':
@@ -63,6 +65,14 @@ class AusDataset(DatasetBase):
         real_emo = one_hot_emo
 
         desired_cond = self._generate_random_cond()
+        desired_emo = np.zeros((self._opt.batch_size,))
+        for i in range(self._opt.batch_size):
+            tmp, _ = self._get_emo_from_cond(desired_cond[i])
+            desired_emo[i] = tmp
+            
+        one_hot_emo = np.zeros((self._opt.batch_size,16))
+        one_hot_emo[(np.arange(self._opt.batch_size), np.array(desired_emo))] = 1
+        desired_emo = one_hot_emo
 
         # transform data
         img = self._transform(Image.fromarray(real_img))
@@ -71,6 +81,7 @@ class AusDataset(DatasetBase):
         sample = {'real_img': img,
                   'real_cond': real_cond,
                   'real_emo':real_emo,
+                  'desired_emo': desired_emo,
                   'desired_cond': desired_cond,
                   'sample_id': sample_id,
                   'real_img_path': real_img_path
@@ -79,6 +90,11 @@ class AusDataset(DatasetBase):
         # print (time.time() - start_time)
 
         return sample
+
+    def _get_emo_from_cond(self, desired_cond):
+        real_emo, name = tutils.get_emotion_label_from_aus(self._aus_dict, self._labels, desired_cond)
+        return real_emo, name
+
 
     def __len__(self):
         return self._dataset_size

@@ -231,15 +231,20 @@ def create_aus_lookup():
     return aus_dict, labels
 
 
-def create_sample(aus_dict, labels):
-    cond = np.random.random_sample((17,))
-
+def get_emotion_label_from_aus(aus_dict, labels, cond):
     conf = dict()
     for k,v in aus_dict.items():
         conf[k] = geometricMean(cond[v], len(v))
 
     name = max(conf.iteritems(), key=operator.itemgetter(1))[0]
     label = labels[name]
+
+    return label, name
+
+
+def create_sample(aus_dict, labels):
+    cond = np.random.random_sample((17,))
+    label, name = get_emotion_label_from_aus(aus_dict, labels, cond)
 
     sample = {'data':cond, 'label':label}
     return sample, name
