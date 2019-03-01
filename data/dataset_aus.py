@@ -19,7 +19,7 @@ class AusDataset(DatasetBase):
         self._name = 'AusDataset'
 
         self._read_dataset_paths()
-        self._aus_dict, self._label = tutils.create_aus_lookup()
+        self._aus_dict, self._labels = tutils.create_aus_lookup()
 
         # read dataset
         #if self._opt.aus_file=='-':
@@ -65,10 +65,8 @@ class AusDataset(DatasetBase):
         real_emo = one_hot_emo
 
         desired_cond = self._generate_random_cond()
-        desired_emo = np.zeros((self._opt.batch_size,))
-        for i in range(self._opt.batch_size):
-            tmp, _ = self._get_emo_from_cond(desired_cond[i])
-            desired_emo[i] = tmp
+        #desired_emo = np.zeros((self._opt.batch_size,))
+        desired_emo, _ = self._get_emo_from_cond(desired_cond)
             
         one_hot_emo = np.zeros((self._opt.batch_size,16))
         one_hot_emo[(np.arange(self._opt.batch_size), np.array(desired_emo))] = 1
