@@ -18,6 +18,7 @@ def get_data(filepaths):
         content = np.loadtxt(filepath, delimiter=', ', skiprows=1)
 	row = content[2:19]
 	if len(row) == 17:
+            #data[os.path.basename(filepath)] = row
             data[os.path.basename(filepath[:-4])] = row
 
     return data

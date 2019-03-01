@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.utils.data
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
-from networks.networks import NetworkBase
+from .networks import NetworkBase
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from options.network_loader_options import NetworkLoaderOptions
@@ -21,24 +21,24 @@ class NetworkLoader:
         pass
 
     @staticmethod
-    def get_by_name(model_name, *args, **kwargs):
+    def get_by_name(model_name, opt):
         model = None
 
         if model_name == 'conv_net':
             from latent_training import conv_net_train
-            model = conv_net_train.ConvNet(*args, **kwargs)
+            model = conv_net_train.ConvNet(opt)
         elif model_name == 'fully_connected':
             from latent_training import fully_connected_train
-            model = fully_connected_train.FullyConnectedNet(*args, **kwargs)
+            model = fully_connected_train.FullyConnectedNet(opt)
         elif model_name=='aus_trainer':
             from aus_training import aus_training
-            model = aus_training.AUsTrainer(*args, **kwargs)
+            model = aus_training.AUsTrainer()
         elif model_name == 'svm':
             from latent_training import svm_training
-            model = svm_training.SvmTrain(*args, **kwargs)
+            model = svm_training.SvmTrain(opt)
         elif model_name == 'ganimation':
             from .ganimation import GANimation
-            model = GANimation(*args, **kwargs)
+            model = GANimation(opt)
         else:
             raise ValueError("Model %s not recognized." % model_name)
 

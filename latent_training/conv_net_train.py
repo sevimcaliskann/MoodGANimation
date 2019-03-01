@@ -16,8 +16,10 @@ from networks.networks import NetworkBase
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import f1_score
 import utils.test_utils as tutils
 from PIL import Image
+from skimage import io
 #import utils.util as util
 
 
@@ -45,11 +47,13 @@ class FaceDataset(Dataset):
             with open(file_name, 'r') as file:
                 data = pickle.load(file)
                 if 'attention' in self._opt.layers:
-                    att_reg = np.squeeze(np.array(data['attention'].cpu().detach().numpy()*255, dtype=np.uint8))
+                    att_reg = np.array(data['attention'])
+                    #att_reg = np.squeeze(np.array(data['attention'].cpu().detach().numpy()*255, dtype=np.uint8))
                     att_reg = self.transform(Image.fromarray(att_reg))
                     data = att_reg
                 elif 'img_reg' in self._opt.layers:
-                    img_reg = np.squeeze(np.array(data['img_reg'].cpu().detach().numpy()*255, dtype=np.uint8))
+                    img_reg = np.array(data['img_reg'])
+                    #img_reg = np.squeeze(np.array(data['img_reg'].cpu().detach().numpy()*255, dtype=np.uint8))
                     img_reg = self.transform(Image.fromarray(img_reg))
                     data = img_reg
                 elif not self._opt.layers:
@@ -63,6 +67,8 @@ class FaceDataset(Dataset):
         else:
             file_name = os.path.join(self.root_dir, self.ids[idx]+'.jpg')
             data = io.imread(file_name)
+            data = self.transform(Image.fromarray(data))
+
         #label = self.labels[self.ids[idx]]
         label, = np.where(self.labels[self.ids[idx]]==1)
         sample = {'data': data, 'label': label}
@@ -129,8 +135,8 @@ class ConvNet(NetworkBase):
     def __init__(self, opt, conv_dim=32, weights = None):
         super(ConvNet, self).__init__()
         self._opt = opt
-        c_dim = 512 if self._opt.is_midfeatures_used else 3
-	#c_dim = 1
+        #c_dim = 512 if self._opt.is_midfeatures_used else 3
+        c_dim = 512
         layers = []
         layers.append(nn.Conv2d(c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
@@ -151,6 +157,9 @@ class ConvNet(NetworkBase):
             self.criterion = torch.nn.CrossEntropyLoss().cuda()
         else:
             self.criterion = torch.nn.CrossEntropyLoss(weight=weights).cuda()
+
+
+        #self.criterion = torch.nn.SmoothL1Loss().cuda()
         self.criterion.size_average = False
         self.data = self._Tensor(self._opt.batch_size, c_dim, self._opt.image_size, self._opt.image_size)
         #self.label = self._Tensor(self._opt.batch_size, 16).long()
@@ -309,6 +318,7 @@ class ConvNetTrain:
             do_print_terminal = time.time() - self._last_print_time > self._opt.print_freq_s
             self.net.network_set_input(train_batch)
             self.loss = self.net.optimize_parameters()
+            self.train_acc = self.calc_accuracy(train_batch)
             #self.loss, self.label_grad = self.net.optimize_parameters()
             #print('label grad: ', label_grad)
 
@@ -323,6 +333,15 @@ class ConvNetTrain:
 
 
 
+
+    def calc_accuracy(self, batch):
+        self.net.network_set_input(batch)
+        target = np.around(batch['label'].cpu().detach().numpy()).astype('int32')
+        loss, pred = self.net.forward_net()
+        pred = np.around(pred.cpu().detach().numpy())
+        max_indices = np.argmax(pred,axis=1)
+        train_acc = float(np.sum(max_indices == target))/max_indices.shape[0]
+        return train_acc
 
 
     def save(self, label):
@@ -339,8 +358,10 @@ class ConvNetTrain:
     def display_terminal(self, iter_start_time, i_epoch, i_train_batch):
         train_errors = OrderedDict()
         train_errors['train_loss'] = self.loss
+        train_errors['train_acc'] = self.train_acc
 
         self.writer.add_scalar('data/train_loss', self.loss, i_epoch*self._iters_per_epoch + i_train_batch)
+        self.writer.add_scalar('data/train_acc', self.train_acc, i_epoch*self._iters_per_epoch + i_train_batch)
 
         t = (time.time() - iter_start_time) / self._opt.batch_size
         self.print_current_train_errors(i_epoch, i_train_batch, self._iters_per_epoch, train_errors, t)
@@ -360,12 +381,15 @@ class ConvNetTrain:
             self.net.network_set_input(val_batch)
             loss, _ = self.net.forward_net()
             loss = loss.cpu().detach().item()
+            val_acc = self.calc_accuracy(val_batch)
 
             # store current batch errors
             if 'val_loss' in val_errors:
                 val_errors['val_loss'] += loss
+                val_errors['val_acc'] += val_acc
             else:
                 val_errors['val_loss'] = loss
+                val_errors['val_acc'] = val_acc
 
 
         # normalize errors
@@ -373,6 +397,7 @@ class ConvNetTrain:
             val_errors[k] /= self._opt.num_iters_validate
 
         self.writer.add_scalar('data/val_loss', val_errors['val_loss'], i_epoch*self._iters_per_epoch + i_train_batch)
+        self.writer.add_scalar('data/val_acc', val_errors['val_acc'], i_epoch*self._iters_per_epoch + i_train_batch)
 
         # visualize
         t = (time.time() - val_start_time)
@@ -442,8 +467,8 @@ class ConvNetTrain:
 
             # evaluate model
             self.net.network_set_input(val_batch)
-            target = np.around(val_batch['label'].cpu().detach().numpy()).astype('int32')
-            #target, = np.where(target==1)
+            target = np.around(val_batch['label'].cpu().detach().numpy())[0].astype('int32')
+            #target, = np.where(target==np.max(target))
             loss, pred = self.net.forward_net()
             if 'val_loss' in val_errors:
                 val_errors['val_loss'] += loss
@@ -462,9 +487,11 @@ class ConvNetTrain:
                 y_targets.append(y_t)
 
         y_predicts = np.array(y_predicts)
-        y_targets = np.squeeze(np.array(y_targets), axis=1)
+        #y_targets = np.squeeze(np.array(y_targets), axis=1)
         accuracy = float(accuracy) /self.dataset_test_size
+        f1 = f1_score(y_targets, y_predicts, average='macro')
         print('Accuracy: ', accuracy)
+        print('F1 Score: ', f1)
         if(load_last_epoch):
             conf_mat = confusion_matrix(y_targets, y_predicts)
             print('Confusion matrix: ', conf_mat)

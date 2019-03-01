@@ -12,7 +12,7 @@ CUDA_VISIBLE_DEVICES=$SGE_GPU python -m latent_training.fully_connected_train \
 --batch_size 16 \
 --nepochs 1000 \
 --checkpoints_dir /srv/glusterfs/csevim/datasets/emotionet/emotion_cat/checkpoints \
---name fully_connect_weightless_cross_rule_learning \
+--name fully_connect_weightless_cross_rule_learning_val_train_acc \
 --rule_learning 1 \
 --load_epoch -1 \
 --is_train 1

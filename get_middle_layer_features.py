@@ -50,7 +50,8 @@ class MiddleLayerFeatures:
             output_path = os.path.join(self._opt.output_dir, id+'.pkl')
             if os.path.exists(output_path):
                 continue
-            cond = self.conds[id]
+            #cond = self.conds[id]
+            cond = np.zeros((17,))
             filepath = os.path.join(self._opt.data_dir, self._opt.images_folder)
             filepath = os.path.join(filepath, id+'.jpg')
             features = self.get_features(filepath, cond)
@@ -119,7 +120,9 @@ class MiddleLayerFeatures:
             face = f
 
         img_reg = self._model._G.img_reg(face)
+        img_reg = np.squeeze(np.array(img_reg.cpu().detach().numpy()*255, dtype=np.uint8))
         att_reg = self._model._G.attetion_reg(face)
+        att_reg = np.squeeze(np.array(att_reg.cpu().detach().numpy()*255, dtype=np.uint8))
         if 'attention' in self.layers:
             features['attention'] = att_reg
         if 'img_reg' in self.layers:

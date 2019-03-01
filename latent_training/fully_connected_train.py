@@ -17,7 +17,8 @@ from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from sklearn.utils.class_weight import compute_class_weight
 import utils.test_utils as tutils
-from utils.center_loss import CenterLoss
+from sklearn.metrics import f1_score
+
 
 class FaceDataset(Dataset):
 
@@ -108,19 +109,10 @@ class FullyConnectedNet(NetworkBase):
         layers.append(nn.ReLU(inplace=True))
         layers.append(nn.Linear(1000, 100))
         layers.append(nn.ReLU(inplace=True))
-
-        #self.last_layer_features = nn.Sequential(*layers)
-        #self.center_loss = CenterLoss(num_classes=16, feat_dim=100, use_gpu=True)
-        #self.classes = torch.from_numpy(np.arange(16)).long().cuda()
-
         layers.append(nn.Linear(100, 16))
         self.net = nn.Sequential(*layers)
         self.net.cuda()
         self.learning_rate = 1e-4
-
-        #params = list(self.net.parameters()) + list(self.center_loss.parameters())
-        #self.optimizer = torch.optim.Adam(params, lr=self.learning_rate,
-        #                                     betas=[0.5, 0.999])
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate,
                                              betas=[0.5, 0.999])
 
@@ -297,6 +289,7 @@ class FullyConnectedNetTrain:
             do_print_terminal = time.time() - self._last_print_time > self._opt.print_freq_s
             self.net.network_set_input(train_batch)
             self.loss = self.net.optimize_parameters()
+            self.train_acc = self.calc_accuracy(train_batch)
             #self.loss, self.label_grad = self.net.optimize_parameters()
             #print('label grad: ', label_grad)
 
@@ -313,6 +306,15 @@ class FullyConnectedNetTrain:
 
 
 
+    def calc_accuracy(self, batch):
+        self.net.network_set_input(batch)
+        target = np.around(batch['label'].cpu().detach().numpy()).astype('int32')
+        loss, pred = self.net.forward_net()
+        pred = np.around(pred.cpu().detach().numpy())
+        max_indices = np.argmax(pred,axis=1)
+        train_acc = float(np.sum(max_indices == target))/max_indices.shape[0]
+        return train_acc
+
     def save(self, label):
         # save networks
         self.save_network(self.net, self._opt.name, label)
@@ -327,8 +329,10 @@ class FullyConnectedNetTrain:
     def display_terminal(self, iter_start_time, i_epoch, i_train_batch):
         train_errors = OrderedDict()
         train_errors['train_loss'] = self.loss
+        train_errors['train_acc'] = self.train_acc
 
         self.writer.add_scalar('data/train_loss', self.loss, i_epoch*self._iters_per_epoch + i_train_batch)
+        self.writer.add_scalar('data/train_acc', self.train_acc, i_epoch*self._iters_per_epoch + i_train_batch)
 
         t = (time.time() - iter_start_time) / self._opt.batch_size
         self.print_current_train_errors(i_epoch, i_train_batch, self._iters_per_epoch, train_errors, t)
@@ -348,12 +352,15 @@ class FullyConnectedNetTrain:
             self.net.network_set_input(val_batch)
             loss, _ = self.net.forward_net()
             loss = loss.cpu().detach().item()
+            val_acc = self.calc_accuracy(val_batch)
 
             # store current batch errors
             if 'val_loss' in val_errors:
                 val_errors['val_loss'] += loss
+                val_errors['val_acc'] += val_acc
             else:
                 val_errors['val_loss'] = loss
+                val_errors['val_acc'] = val_acc
 
 
         # normalize errors
@@ -361,6 +368,7 @@ class FullyConnectedNetTrain:
             val_errors[k] /= self._opt.num_iters_validate
 
         self.writer.add_scalar('data/val_loss', val_errors['val_loss'], i_epoch*self._iters_per_epoch + i_train_batch)
+        self.writer.add_scalar('data/val_acc', val_errors['val_acc'], i_epoch*self._iters_per_epoch + i_train_batch)
 
         # visualize
         t = (time.time() - val_start_time)
@@ -452,7 +460,9 @@ class FullyConnectedNetTrain:
         y_predicts = np.array(y_predicts)
         y_targets = np.array(y_targets)
         accuracy = float(accuracy) /self.dataset_test_size
+        f1 = f1_score(y_targets, y_predicts, average='macro')
         print('Accuracy: ', accuracy)
+        print('F1 Score: ', f1)
         if load_last_epoch:
             conf_mat = confusion_matrix(y_targets, y_predicts)
             print('Confusion matrix: ', conf_mat)
