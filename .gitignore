@@ -5,3 +5,6 @@ latent_training/fully_connected_models/*
 latent_training/fully_connected_tensorboard_log/*
 latent_training/svm_models/*
 latent_training/svm_tensorboard_log/*
+data/dataset_aus.pyc
+models/ganimation.pyc
+utils/test_utils.pyc
