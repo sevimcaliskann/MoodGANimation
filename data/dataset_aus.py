@@ -50,7 +50,7 @@ class AusDataset(DatasetBase):
             real_img, real_img_path = self._get_img_by_id(sample_id)
             real_cond = self._get_cond_by_id(sample_id)
             #real_emo = self._get_emo_by_id(sample_id)
-            real_emo = self._get_emo_from_cond(real_cond)
+            real_emo, _ = self._get_emo_from_cond(real_cond)
 
             if real_img is None:
                 print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id+'.jpg')

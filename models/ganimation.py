@@ -50,7 +50,7 @@ class GANimation(BaseModel):
         return NetworksFactory.get_by_name('generator_wasserstein_gan', c_dim=self._opt.cond_nc)
 
     def _create_discriminator(self):
-        return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.aus_dim)
+        return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.cond_nc)
 
     def _init_train_vars(self):
         self._current_lr_G = self._opt.lr_G
@@ -252,7 +252,7 @@ class GANimation(BaseModel):
         self._loss_g_masked_emo = self._criterion_D_cond(d_fake_desired_img_masked_emo, self._desired_emo) / self._B * self._opt.lambda_D_emo
 
         # G(G(Ic1,c2), c1)
-        rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_cond)
+        rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_emo)
         rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
         rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
 
