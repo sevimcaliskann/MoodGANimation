@@ -50,7 +50,7 @@ class GANimation(BaseModel):
         return NetworksFactory.get_by_name('generator_wasserstein_gan', c_dim=self._opt.cond_nc)
 
     def _create_discriminator(self):
-        return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.cond_nc)
+        return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.aus_dim)
 
     def _init_train_vars(self):
         self._current_lr_G = self._opt.lr_G

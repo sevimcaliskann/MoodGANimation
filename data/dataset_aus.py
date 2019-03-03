@@ -49,7 +49,8 @@ class AusDataset(DatasetBase):
 
             real_img, real_img_path = self._get_img_by_id(sample_id)
             real_cond = self._get_cond_by_id(sample_id)
-            real_emo = self._get_emo_by_id(sample_id)
+            #real_emo = self._get_emo_by_id(sample_id)
+            real_emo = self._get_emo_from_cond(real_cond)
 
             if real_img is None:
                 print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id+'.jpg')
@@ -59,20 +60,20 @@ class AusDataset(DatasetBase):
                 print 'error reading emo %s, skipping sample' % sample_id
 
 
-        real_emo = np.array(real_emo, dtype=np.int32)
-        #one_hot_emo = np.zeros((self._opt.batch_size,11))
-        #one_hot_emo[(np.arange(self._opt.batch_size), np.array(real_emo))] = 1
-	one_hot_emo = np.zeros((11,))
+        #one_hot_emo = np.zeros((11,))
+        #one_hot_emo[int(real_emo)] = 1
+        #real_emo = one_hot_emo
+        one_hot_emo = np.zeros((16,))
         one_hot_emo[int(real_emo)] = 1
         real_emo = one_hot_emo
 
+
         desired_cond = self._generate_random_cond()
-        #desired_emo = np.zeros((self._opt.batch_size,))
         desired_emo, _ = self._get_emo_from_cond(desired_cond)
-            
+
         #one_hot_emo = np.zeros((self._opt.batch_size,16))
         #one_hot_emo[(np.arange(self._opt.batch_size), np.array(desired_emo))] = 1
-	one_hot_emo = np.zeros((16,))
+        one_hot_emo = np.zeros((16,))
         one_hot_emo[int(desired_emo)] = 1
         desired_emo = one_hot_emo
 

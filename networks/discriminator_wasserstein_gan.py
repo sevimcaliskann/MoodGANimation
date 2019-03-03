@@ -30,7 +30,7 @@ class Discriminator(NetworkBase):
         self.conv3 = nn.Sequential(Flatten(),
                                    nn.Linear(c_dim, 100),
                                    nn.ReLU(),
-                                   nn.Linear(100, 11))
+                                   nn.Linear(100, 16))
         #self.conv3 = nn.Conv2d(c_dim, 11, kernel_size=3, stride = 1, padding=1, bias=False) # 7 emotions from affectnet
 
     def forward(self, x):
