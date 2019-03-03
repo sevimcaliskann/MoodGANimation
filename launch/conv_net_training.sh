@@ -15,7 +15,7 @@ CUDA_VISIBLE_DEVICES=$SGE_GPU python -m latent_training.conv_net_train \
 --nepochs 1000 \
 --is_midfeatures_used 1 \
 --checkpoints_dir /srv/glusterfs/csevim/datasets/emotionet/emotion_cat/checkpoints \
---name convnet_res_aus_all_zeros \
+--name convnet_res_aus_all_zeros_rafd \
 --image_size 32 \
 --load_epoch -1 \
 --layers 'ResidualBlock:2' \
