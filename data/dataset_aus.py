@@ -60,16 +60,20 @@ class AusDataset(DatasetBase):
 
 
         real_emo = np.array(real_emo, dtype=np.int32)
-        one_hot_emo = np.zeros((self._opt.batch_size,11))
-        one_hot_emo[(np.arange(self._opt.batch_size), np.array(real_emo))] = 1
+        #one_hot_emo = np.zeros((self._opt.batch_size,11))
+        #one_hot_emo[(np.arange(self._opt.batch_size), np.array(real_emo))] = 1
+	one_hot_emo = np.zeros((11,))
+        one_hot_emo[int(real_emo)] = 1
         real_emo = one_hot_emo
 
         desired_cond = self._generate_random_cond()
         #desired_emo = np.zeros((self._opt.batch_size,))
         desired_emo, _ = self._get_emo_from_cond(desired_cond)
             
-        one_hot_emo = np.zeros((self._opt.batch_size,16))
-        one_hot_emo[(np.arange(self._opt.batch_size), np.array(desired_emo))] = 1
+        #one_hot_emo = np.zeros((self._opt.batch_size,16))
+        #one_hot_emo[(np.arange(self._opt.batch_size), np.array(desired_emo))] = 1
+	one_hot_emo = np.zeros((16,))
+        one_hot_emo[int(desired_emo)] = 1
         desired_emo = one_hot_emo
 
         # transform data
@@ -177,6 +181,7 @@ class AusDataset(DatasetBase):
             rand_sample_id = self._ids[random.randint(0, self._dataset_size - 1)]
             cond = self._get_cond_by_id(rand_sample_id)
             cond += np.random.uniform(-0.1, 0.1, cond.shape)
+	    cond[cond<0] = 0
 
         #minV = np.amin(cond)
         #maxV = np.amax(cond)
