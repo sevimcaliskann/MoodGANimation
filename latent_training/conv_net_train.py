@@ -78,17 +78,27 @@ class FaceDataset(Dataset):
         return sample
 
     def get_labels(self, filepath):
-        self.labels = dict()
-        xl_file = pd.ExcelFile(filepath)
-        for sheet_name in xl_file.sheet_names:
-            chunk = xl_file.parse(sheet_name)
-            urls = np.array(chunk[chunk.columns[0]])
-            emos = np.array(chunk[chunk.columns[2:]])
-            #for count in range(len(urls)):
-            for url, emo in zip(urls, emos):
-                key = url.split('/')[-1][:-4]
-                if(len(key)>0) and key in self.ids:
-                    self.labels[key] = emo
+        if filepath[-4:]=='xlsx':
+            self.labels = dict()
+            xl_file = pd.ExcelFile(filepath)
+            for sheet_name in xl_file.sheet_names:
+                chunk = xl_file.parse(sheet_name)
+                urls = np.array(chunk[chunk.columns[0]])
+                emos = np.array(chunk[chunk.columns[2:]])
+                #for count in range(len(urls)):
+                for url, emo in zip(urls, emos):
+                    key = url.split('/')[-1][:-4]
+                    if(len(key)>0) and key in self.ids:
+                        self.labels[key] = emo
+        elif filepath[-4:]=='.txt':
+            rows = np.loadtxt(filepath, delimiter='\n', dtype = np.str)
+            rows = np.array([row.split(' ') for row in rows])
+            names = np.array([row[0][:-4] for row in rows])
+            emos = np.array([row[1] for row in rows], dtype = np.int32)
+            emos = emos - 1
+            one_hot_emos = np.zeros((len(emos), emos.max()+1))
+            one_hot_emos[(np.arange(len(emos)), emos)] = 1
+            self.labels = dict(zip(names, one_hot_emos))
 
         self.ids = list(set(self.ids).intersection(set(self.labels.keys())))
 
@@ -101,7 +111,7 @@ class FaceDataset(Dataset):
             temp = temp[0]
             y[i] = temp
 
-        self.weights = compute_class_weight('balanced', np.arange(16), y)
+        self.weights = compute_class_weight('balanced', np.arange(y.max()+1), y)
         return self.weights
 
     def read_ids(self, file_path):
@@ -144,7 +154,8 @@ class ConvNet(NetworkBase):
         layers.append(Flatten())
         layers.append(nn.Linear(conv_dim*self._opt.image_size*self._opt.image_size, 1000))
         layers.append(nn.ReLU(inplace=True))
-        layers.append(nn.Linear(1000, 16))
+        #layers.append(nn.Linear(1000, 16))
+        layers.append(nn.Linear(1000, 7))
         self.net = nn.Sequential(*layers)
         self.net.cuda()
         self.learning_rate = 1e-4
@@ -496,7 +507,8 @@ class ConvNetTrain:
             conf_mat = confusion_matrix(y_targets, y_predicts)
             print('Confusion matrix: ', conf_mat)
             tutils.save_confusion_matrix(y_targets, y_predicts, self._opt.save_folder)
-            tutils.plot_roc_curves(y_targets, y_predicts, np.arange(16), self._opt.save_folder)
+            #tutils.plot_roc_curves(y_targets, y_predicts, np.arange(16), self._opt.save_folder)
+            tutils.plot_roc_curves(y_targets, y_predicts, np.arange(7), self._opt.save_folder)
         return accuracy
 
 
