@@ -14,6 +14,7 @@ class BaseOptions():
         self._parser.add_argument('--test_ids_file', type=str, default='test_ids.csv', help='file containing test ids')
         self._parser.add_argument('--train_images_folder', type=str, default='imgs', help='train images folder')
 	self._parser.add_argument('--test_images_folder', type=str, default='imgs', help='test images folder')
+        self._parser.add_argument('--affectnet_info_file', type=str, default='imgs', help='file to read moods and emo from affectnet')
         self._parser.add_argument('--training_aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
 	self._parser.add_argument('--emo_training_file', type=str, default='emos_affectnet_train.csv', help='file containing samples emotion categories')
 	self._parser.add_argument('--emo_test_file', type=str, default='emos_affectnet_test.csv', help='file containing samples emotion categories')
