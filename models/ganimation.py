@@ -134,7 +134,7 @@ class GANimation(BaseModel):
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * real_img + (1 - fake_img_mask) * fake_imgs
 
-            rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, real_emo)
+            rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, real_cond)
             rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
             rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
 
@@ -235,7 +235,7 @@ class GANimation(BaseModel):
         self._loss_g_masked_fake = self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
         self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
         # G(G(Ic1,c2), c1)
-        rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_emo)
+        rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_cond)
         rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
         rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
 
@@ -275,7 +275,7 @@ class GANimation(BaseModel):
 
     def _forward_D(self):
         # generate fake images
-        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_emo)
+        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
 
@@ -289,7 +289,7 @@ class GANimation(BaseModel):
 
         # combine losses
         #return self._loss_d_real  + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
-        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
+        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_imgs_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
     def _gradinet_penalty_D(self, fake_imgs_masked):

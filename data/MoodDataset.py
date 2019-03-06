@@ -39,7 +39,7 @@ class MoodDataset(DatasetBase):
             if real_img is None:
                 print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id+'.jpg')
             if real_cond is None:
-                print 'error reading aus %s, skipping sample' % sample_id
+                print 'error reading cond %s, skipping sample' % sample_id
 
 
         desired_cond = self._generate_random_cond()
@@ -65,7 +65,7 @@ class MoodDataset(DatasetBase):
 
     def _read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
-        return [id for id in ids]
+        return [id[:-4] for id in ids]
 
     def _read_dataset_paths(self):
         self._root = self._opt.data_dir
@@ -76,6 +76,7 @@ class MoodDataset(DatasetBase):
         # read ids
         self._ids = self._read_ids(use_ids_filepath)
         self._moods, self._emos = self._read_info(info_filepath)
+	self._ids = list(set(self._ids).intersection(set(self._moods.keys())))
         print('#data: ', len(self._ids))
 
         # dataset size
@@ -103,17 +104,17 @@ class MoodDataset(DatasetBase):
         cols = np.array([id.split(';') for id in ids])
         names = cols[:, 0]
         names = [name.split('/')[1] for name in names]
-        #names = [name.split('.')[0] for name in names]
+        names = [name.split('.')[0] for name in names]
 
-        emos = np.array(row[-1].split(',')[1] for row in cols], dtype = np.int32)
+        emos = np.array([row[-1].split(',')[1] for row in cols], dtype = np.int32)
         one_hot = np.zeros((len(emos), emos.max()+1))
         one_hot[np.arange(len(emos)), emos] = 1
 
         cols = cols[:, -1]
-        mood = [col.split(',')[-2:-1] for col in cols]
+        mood = [col.split(',')[-2:] for col in cols]
 
         mood_dict = dict(zip(names, mood))
-        emos_dict = dict(zip(names, emos))
+        emos_dict = dict(zip(names, one_hot))
 
         keys = set(self._ids).intersection(set(mood_dict.keys()))
         mood_dict = {k:mood_dict[k] for k in keys}
@@ -122,35 +123,36 @@ class MoodDataset(DatasetBase):
         emos_dict = {k:emos_dict[k] for k in keys}
         return mood_dict, emos_dict
 
-    def _cond_by_id(self, id):
+    def _get_cond_by_id(self, id):
         mood = None
         emo = None
-        while mood is not None and emo is not None:
+        while mood is None and emo is None:
             mood = self._get_mood_by_id(id)
             emo = self._get_emo_by_id(id)
             if mood is None:
-                print 'error reading mood %s, skipping sample' % sample_id
+                print 'error reading mood %s, skipping sample' % id
             if emo is None:
-                print 'error reading emotion %s, skipping sample' % sample_id
+                print 'error reading emotion %s, skipping sample' % id
 
-        cond = np.concatenate((mood, emo), axis = 1)
+        cond = np.concatenate((mood, emo), axis = 0)
+	return cond
 
     def _get_mood_by_id(self, id):
-        if id in self._moods:
+        if id in self._moods.keys():
             cond = np.array(self._moods[id], dtype = np.float32)
             return cond
         else:
             return None
 
     def _get_emo_by_id(self, id):
-        if id in self._emos:
+        if id in self._emos.keys():
             emo = np.array(self._emos[id], dtype = np.float32)
             return emo
         else:
             return None
 
     def _get_img_by_id(self, id):
-        filepath = os.path.join(self._imgs_dir, id)
+        filepath = os.path.join(self._imgs_dir, id + '.jpg')
         #filepath = os.path.join(self._imgs_dir, id+'_aligned')
         #filepath = os.path.join(filepath, 'face_det_000000.bmp')
         return cv_utils.read_cv2_img(filepath), filepath
@@ -164,7 +166,7 @@ class MoodDataset(DatasetBase):
 
             emo = self._get_emo_by_id(rand_sample_id)
             emo += np.random.uniform(-0.1, 0.1, emo.shape)
-            cond = np.concatenate((mood, emo), axis=1)
+            cond = np.concatenate((mood, emo), axis=0)
 
         #minV = np.amin(cond)
         #maxV = np.amax(cond)
