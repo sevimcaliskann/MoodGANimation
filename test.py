@@ -35,7 +35,7 @@ class MorphFacesInTheWild:
         #img = cv2.resize(img,(newX,newY))
         morphed_img = self._img_morph(img, expression)
         #morphed_img = cv2.cvtColor(morphed_img, cv2.COLOR_RGB2BGR)
-        output_name = os.path.join(self._opt.output_dir, '{0}_epoch_{1}_intensity_{2}_out.png'.format(os.path.basename(img_path)[:-4], str(self._opt.load_epoch), str(expression[self._opt.au_index]*10)))
+        output_name = os.path.join(self._opt.output_dir, '{0}_epoch_{1}_out.png'.format(os.path.basename(img_path)[:-4], str(self._opt.load_epoch)))
         self._save_img(morphed_img, output_name)
         print('Morphed image is saved at path {}'.format(output_name))
 
@@ -57,72 +57,9 @@ class MorphFacesInTheWild:
     def _morph_face(self, face, expression):
         face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0)
         expression = torch.unsqueeze(torch.from_numpy(expression/5.0), 0)
-
-
-
-        real_cond = np.zeros(17)
-        real_cond[7] = 0.5
-        real_cond = torch.unsqueeze(torch.from_numpy(real_cond), 0)
-        test_batch1 = {'real_img': face, 'real_cond': expression, 'desired_cond': real_cond, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
-
-
-        real_cond = np.zeros(17)
-        real_cond[8] = 0.5
-        real_cond = torch.unsqueeze(torch.from_numpy(real_cond), 0)
-        test_batch2 = {'real_img': face, 'real_cond': expression, 'desired_cond': real_cond, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
-
-        test_batch3 = {'real_img': face, 'real_cond': expression, 'desired_cond': expression, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
-        #test_batch = {'real_img': face, 'real_cond': expression, 'desired_cond': expression, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
+        test_batch1 = {'real_img': face, 'real_cond': expression, 'desired_cond': expression, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
         self._model.set_input(test_batch1)
         imgs1, _ = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
-        self._model.set_input(test_batch2)
-        imgs2, _ = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
-        self._model.set_input(test_batch3)
-        imgs3, _ = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
-
-
-
-        mask1 = imgs1['fake_img_mask']
-        mask2 = imgs2['fake_img_mask']
-        mask3 = imgs3['fake_img_mask']
-        fake1 = imgs1['fake_imgs']
-        fake2 = imgs2['fake_imgs']
-        fake3 = imgs3['fake_imgs']
-        real = imgs1['real_img']
-
-
-
-        output_name = os.path.join(self._opt.output_dir, 'mask1.png')
-        self._save_img(mask1, output_name)
-        output_name = os.path.join(self._opt.output_dir, 'mask2.png')
-        self._save_img(mask2, output_name)
-        output_name = os.path.join(self._opt.output_dir, 'mask3.png')
-        self._save_img(mask3, output_name)
-        output_name = os.path.join(self._opt.output_dir, 'fake1.png')
-        self._save_img(fake1, output_name)
-        output_name = os.path.join(self._opt.output_dir, 'fake2.png')
-        self._save_img(fake2, output_name)
-        output_name = os.path.join(self._opt.output_dir, 'fake3.png')
-        self._save_img(fake3, output_name)
-        output_name = os.path.join(self._opt.output_dir, 'real.png')
-        self._save_img(imgs1['real_img'] , output_name)
-
-        '''mask1 = cv2.normalize(mask1, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        mask2 = cv2.normalize(mask2, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-
-        test1 = np.array(mask1*real + (1-mask1)*fake1)
-        test2 = np.array(mask2*real + (1-mask2)*fake2)
-        test3 = np.array(mask1*real + (1-mask1)*fake2)
-        test4 = np.array(mask2*real + (1-mask2)*fake1)
-        print('test1 shape: ', test1.shape)
-        print('test2 shape: ', test2.shape)
-        print('test3 shape: ', test3.shape)
-        print('test4 shape: ', test4.shape)
-
-        self._save_img(test1 , os.path.join(self._opt.output_dir, 'test1.png'))
-        self._save_img(test2 , os.path.join(self._opt.output_dir, 'test2.png'))
-        self._save_img(test3 , os.path.join(self._opt.output_dir, 'test3.png'))
-        self._save_img(test4 , os.path.join(self._opt.output_dir, 'test4.png'))'''
         return imgs1['concat']
 
     def _save_img(self, img, filename):
@@ -168,8 +105,9 @@ def main():
         expression[opt.au_index] = i
         print('expression: ', expression)
         morph.morph_file(image_path, expression)'''
-    #expression = np.zeros(17)
-    expression = get_aus_values(image_path, opt.aus_csv_folder)
+    expression = np.zeros(13)
+    expression[0] = -0.5
+    
     print('expression: ', expression)
     morph.morph_file(image_path, expression)
     #expression = np.random.uniform(0, 1, opt.cond_nc)
