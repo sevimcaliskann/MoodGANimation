@@ -36,14 +36,14 @@ class GANimation(BaseModel):
         self._G = self._create_generator()
         self._G.init_weights()
         if len(self._gpu_ids) > 1:
-            self._G = torch.nn.DataParallel(self._G, device_ids=self._gpu_ids)
+            self._G = torch.nn.DataParallel(self._G, device_ids=self._gpu_ids[0])
         self._G.cuda()
 
         # discriminator network
         self._D = self._create_discriminator()
         self._D.init_weights()
         if len(self._gpu_ids) > 1:
-            self._D = torch.nn.DataParallel(self._D, device_ids=self._gpu_ids)
+            self._D = torch.nn.DataParallel(self._D, device_ids=self._gpu_ids[0])
         self._D.cuda()
 
     def _create_generator(self):
