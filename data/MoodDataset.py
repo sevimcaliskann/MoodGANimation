@@ -37,7 +37,7 @@ class MoodDataset(DatasetBase):
             real_cond = self._get_cond_by_id(sample_id)
 
             if real_img is None:
-                print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id+'.jpg')
+                print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id)
             if real_cond is None:
                 print 'error reading cond %s, skipping sample' % sample_id
 
@@ -65,7 +65,7 @@ class MoodDataset(DatasetBase):
 
     def _read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
-        return [id[:-4] for id in ids]
+        return [id for id in ids]
 
     def _read_dataset_paths(self):
         self._root = self._opt.data_dir
@@ -104,7 +104,7 @@ class MoodDataset(DatasetBase):
         cols = np.array([id.split(';') for id in ids])
         names = cols[:, 0]
         names = [name.split('/')[1] for name in names]
-        names = [name.split('.')[0] for name in names]
+        names = [name.split(',')[0] for name in names]
 
         emos = np.array([row[-1].split(',')[1] for row in cols], dtype = np.int32)
         one_hot = np.zeros((len(emos), emos.max()+1))
@@ -152,7 +152,8 @@ class MoodDataset(DatasetBase):
             return None
 
     def _get_img_by_id(self, id):
-        filepath = os.path.join(self._imgs_dir, id + '.jpg')
+        filepath = os.path.join(self._imgs_dir, id)
+        print('filepath: ', filepath)
         #filepath = os.path.join(self._imgs_dir, id+'_aligned')
         #filepath = os.path.join(filepath, 'face_det_000000.bmp')
         return cv_utils.read_cv2_img(filepath), filepath

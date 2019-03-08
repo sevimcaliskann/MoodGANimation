@@ -106,8 +106,8 @@ def main():
         print('expression: ', expression)
         morph.morph_file(image_path, expression)'''
     expression = np.zeros(13)
-    expression[0] = -0.5
-    
+    expression[3] = 1
+
     print('expression: ', expression)
     morph.morph_file(image_path, expression)
     #expression = np.random.uniform(0, 1, opt.cond_nc)
