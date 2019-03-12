@@ -126,7 +126,7 @@ class MoodDataset(DatasetBase):
     def _get_cond_by_id(self, id):
         mood = None
         #emo = None
-        while mood is None and emo is None:
+        while mood is None:
             mood = self._get_mood_by_id(id)
             #emo = self._get_emo_by_id(id)
             #if mood is None:
