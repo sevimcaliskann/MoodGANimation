@@ -125,16 +125,17 @@ class MoodDataset(DatasetBase):
 
     def _get_cond_by_id(self, id):
         mood = None
-        emo = None
+        #emo = None
         while mood is None and emo is None:
             mood = self._get_mood_by_id(id)
-            emo = self._get_emo_by_id(id)
-            if mood is None:
-                print 'error reading mood %s, skipping sample' % id
-            if emo is None:
-                print 'error reading emotion %s, skipping sample' % id
+            #emo = self._get_emo_by_id(id)
+            #if mood is None:
+            #    print 'error reading mood %s, skipping sample' % id
+            #if emo is None:
+            #    print 'error reading emotion %s, skipping sample' % id
 
-        cond = np.concatenate((mood, emo), axis = 0)
+        #cond = np.concatenate((mood, emo), axis = 0)
+	cond = np.array(mood)
 	return cond
 
     def _get_mood_by_id(self, id):
@@ -164,9 +165,10 @@ class MoodDataset(DatasetBase):
             mood = self._get_mood_by_id(rand_sample_id)
             mood += np.random.uniform(-0.1, 0.1, mood.shape)
 
-            emo = self._get_emo_by_id(rand_sample_id)
-            emo += np.random.uniform(-0.1, 0.1, emo.shape)
-            cond = np.concatenate((mood, emo), axis=0)
+            #emo = self._get_emo_by_id(rand_sample_id)
+            #emo += np.random.uniform(-0.1, 0.1, emo.shape)
+            #cond = np.concatenate((mood, emo), axis=0)
+	    cond = np.array(mood)
 
         #minV = np.amin(cond)
         #maxV = np.amax(cond)
