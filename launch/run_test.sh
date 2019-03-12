@@ -12,7 +12,7 @@ python /scratch_net/zinc/csevim/apps/repos/GANimation/test.py \
 --input_path /scratch_net/zinc/csevim/apps/repos/GANimation/faces/imgs/face.png \
 --output_dir /scratch_net/zinc/csevim/apps/repos/GANimation/test_outputs \
 --checkpoints_dir /srv/glusterfs/csevim/datasets/emotionet/checkpoints \
---name affectnet_with_moods \
+--name affectnet_with_moods_bigger_dataset \
 --cond_nc 13 \
 --load_epoch -1 \
 --gpu_ids $SGE_GPU

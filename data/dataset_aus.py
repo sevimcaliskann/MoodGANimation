@@ -115,7 +115,6 @@ class AusDataset(DatasetBase):
         # read aus
         self._conds = self._read_conds(conds_filepath)
         self._emos = self._read_emos(emos_filepath)
-        print('#emotions coming from data: ', len(self._emos.keys()))
         self._ids = list(set(self._ids).intersection(set(self._conds.keys())))
         self._ids = list(set(self._ids).intersection(set(self._emos.keys())))
 
