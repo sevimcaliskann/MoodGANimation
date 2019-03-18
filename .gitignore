@@ -8,3 +8,8 @@ latent_training/svm_tensorboard_log/*
 data/dataset_aus.pyc
 models/ganimation.pyc
 utils/test_utils.pyc
+data/dataset.pyc
+networks/discriminator_wasserstein_gan.pyc
+networks/generator_wasserstein_gan.pyc
+options/base_options.pyc
+options/train_options.pyc

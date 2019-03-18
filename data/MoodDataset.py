@@ -135,8 +135,9 @@ class MoodDataset(DatasetBase):
             #    print 'error reading emotion %s, skipping sample' % id
 
         #cond = np.concatenate((mood, emo), axis = 0)
-	cond = np.array(mood)
-	return cond
+        cond = np.array(mood)
+        cond = (cond+1)/2
+        return cond
 
     def _get_mood_by_id(self, id):
         if id in self._moods.keys():
