@@ -65,8 +65,6 @@ class GANimation(BaseModel):
     def _init_prefetch_inputs(self):
         self._input_real_img = self._Tensor(self._opt.batch_size, 3, self._opt.image_size, self._opt.image_size)
         self._input_real_cond = self._Tensor(self._opt.batch_size, self._opt.cond_nc)
-        self._input_real_emo = self._Tensor(self._opt.batch_size, 11)
-        self._input_desired_emo = self._Tensor(self._opt.batch_size, 16)
         self._input_desired_cond = self._Tensor(self._opt.batch_size, self._opt.cond_nc)
         self._input_real_img_path = None
         self._input_real_cond_path = None
@@ -75,7 +73,6 @@ class GANimation(BaseModel):
         # define loss functions
         self._criterion_cycle = torch.nn.L1Loss().cuda()
         self._criterion_D_cond = torch.nn.MSELoss().cuda()
-	self._criterion_D_emo = torch.nn.MSELoss().cuda()
 
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
@@ -86,7 +83,6 @@ class GANimation(BaseModel):
         self._loss_g_idt = Variable(self._Tensor([0]))
         self._loss_g_masked_fake = Variable(self._Tensor([0]))
         self._loss_g_masked_cond = Variable(self._Tensor([0]))
-        self._loss_g_masked_emo = Variable(self._Tensor([0]))
         #self._loss_g_cyc_cond = Variable(self._Tensor([0]))
         self._loss_g_mask_1_smooth = Variable(self._Tensor([0]))
         self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
@@ -97,15 +93,12 @@ class GANimation(BaseModel):
         # init losses D
         self._loss_d_real = Variable(self._Tensor([0]))
         self._loss_d_cond = Variable(self._Tensor([0]))
-	self._loss_d_emo = Variable(self._Tensor([0]))
         self._loss_d_fake = Variable(self._Tensor([0]))
         self._loss_d_gp = Variable(self._Tensor([0]))
 
     def set_input(self, input):
         self._input_real_img.resize_(input['real_img'].size()).copy_(input['real_img'])
         self._input_real_cond.resize_(input['real_cond'].size()).copy_(input['real_cond'])
-        self._input_real_emo.resize_(input['real_emo'].size()).copy_(input['real_emo'])
-        self._input_desired_emo.resize_(input['desired_emo'].size()).copy_(input['desired_emo'])
         self._input_desired_cond.resize_(input['desired_cond'].size()).copy_(input['desired_cond'])
         self._input_real_id = input['sample_id']
         self._input_real_img_path = input['real_img_path']
@@ -113,8 +106,6 @@ class GANimation(BaseModel):
         if len(self._gpu_ids) > 0:
             self._input_real_img = self._input_real_img.cuda(self._gpu_ids[0], async=True)
             self._input_real_cond = self._input_real_cond.cuda(self._gpu_ids[0], async=True)
-            self._input_real_emo = self._input_real_emo.cuda(self._gpu_ids[0], async=True)
-            self._input_desired_emo = self._input_desired_emo.cuda(self._gpu_ids[0], async=True)
             self._input_desired_cond = self._input_desired_cond.cuda(self._gpu_ids[0], async=True)
 
     def set_train(self):
@@ -135,17 +126,15 @@ class GANimation(BaseModel):
             # convert tensor to variables
             real_img = Variable(self._input_real_img, volatile=True)
             real_cond = Variable(self._input_real_cond, volatile=True)
-            real_emo = Variable(self._input_real_emo, volatile=True)
-            desired_emo = Variable(self._input_desired_emo, volatile=True)
             desired_cond = Variable(self._input_desired_cond, volatile=True)
 
             # generate fake images
-            fake_imgs, fake_img_mask = self._G.forward(real_img, desired_emo)
+            fake_imgs, fake_img_mask = self._G.forward(real_img, desired_cond)
 
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * real_img + (1 - fake_img_mask) * fake_imgs
 
-            rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, real_emo)
+            rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, real_cond)
             rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
             rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
 
@@ -201,8 +190,6 @@ class GANimation(BaseModel):
                 self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
                 self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
                 self._vis_real_cond = self._input_real_cond.cpu()[0, ...].numpy()
-                self._vis_real_emo = self._input_real_emo.cpu()[0, ...].numpy()
-                self._vis_desired_emo = self._input_desired_emo.cpu()[0, ...].numpy()
                 self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
                 self._vis_batch_real_img = util.tensor2im(self._input_real_img, idx=-1)
                 self._vis_batch_fake_img_mask = util.tensor2maskim(fake_img_mask.data, idx=-1)
@@ -216,8 +203,6 @@ class GANimation(BaseModel):
             self._B = self._input_real_img.size(0)
             self._real_img = Variable(self._input_real_img)
             self._real_cond = Variable(self._input_real_cond)
-            self._real_emo = Variable(self._input_real_emo)
-            self._desired_emo = Variable(self._input_desired_emo)
             self._desired_cond = Variable(self._input_desired_cond)
 
             # train D
@@ -240,16 +225,15 @@ class GANimation(BaseModel):
 
     def _forward_G(self, keep_data_for_visuals):
         # generate fake images
-        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_emo)
+        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
 
         # D(G(Ic1, c2)*M) masked
-        d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond, d_fake_desired_img_masked_emo = self._D.forward(fake_imgs_masked)
+        d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
 
         self._loss_g_masked_fake = self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
         self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
-        self._loss_g_masked_emo = self._criterion_D_cond(d_fake_desired_img_masked_emo, self._desired_emo) / self._B * self._opt.lambda_D_emo
 
         # G(G(Ic1,c2), c1)
         rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_cond)
@@ -275,8 +259,6 @@ class GANimation(BaseModel):
             self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
             self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
             self._vis_real_cond = self._input_real_cond.cpu()[0, ...].numpy()
-            self._vis_real_emo = self._input_real_emo.cpu()[0, ...].numpy()
-            self._vis_desired_emo = self._input_desired_emo.cpu()[0, ...].numpy()
             self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
             self._vis_batch_real_img = util.tensor2im(self._input_real_img, idx=-1)
             self._vis_batch_fake_img_mask = util.tensor2maskim(fake_img_mask.data, idx=-1)
@@ -288,7 +270,7 @@ class GANimation(BaseModel):
 
         # combine losses
         return self._loss_g_masked_fake + self._loss_g_masked_cond + \
-               self._loss_g_cyc + self._loss_g_masked_emo + \
+               self._loss_g_cyc + \
                self._loss_g_mask_1 + self._loss_g_mask_2 + \
                self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth
 
@@ -299,23 +281,21 @@ class GANimation(BaseModel):
 
     def _forward_D(self):
         # generate fake images
-        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_emo)
+        fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
 
         # D(real_I)
-        d_real_img_prob, d_real_img_cond, d_img_emo = self._D.forward(self._real_img)
+        d_real_img_prob, d_real_img_cond = self._D.forward(self._real_img)
         self._loss_d_real = self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
         self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
-        self._loss_d_emo = self._criterion_D_emo(d_img_emo, self._desired_emo) / self._B * self._opt.lambda_D_emo
 
         # D(fake_I)
         d_fake_desired_img_prob, _, _ = self._D.forward(fake_imgs_masked.detach())
         self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
 
         # combine losses
-        #return self._loss_d_real  + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
-        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
+        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_imgs_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
     def _gradinet_penalty_D(self, fake_imgs_masked):
@@ -351,8 +331,6 @@ class GANimation(BaseModel):
                                  #('g_cond', self._loss_g_cond.data[0]),
                                  ('g_mskd_fake', self._loss_g_masked_fake.detach()),
                                  ('g_mskd_cond', self._loss_g_masked_cond.detach()),
-                                 ('g_mskd_emo', self._loss_g_masked_emo.detach()),
-                                 ('d_loss_emo', self._loss_d_emo.detach()),
                                  ('g_cyc', self._loss_g_cyc.detach()),
                                  #('g_rgb', self._loss_rec_real_img_rgb.detach()),
                                  #('g_rgb_un', self._loss_g_unmasked_rgb.detach()),
@@ -390,8 +368,6 @@ class GANimation(BaseModel):
         visuals['6_rec_real_img_mask'] = np.flip(self._vis_rec_real_img_mask, axis=2)
         visuals['7_cyc_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
         visuals['8_real_cond'] = self._vis_real_cond
-        visuals['13_real_emo'] = self._vis_real_emo
-        visuals['14_desired_emo'] = self._vis_desired_emo
         visuals['9_desired_cond'] = self._vis_desired_cond
         # visuals['8_fake_img_mask_sat'] = self._vis_fake_img_mask_saturated
         # visuals['9_rec_real_img_mask_sat'] = self._vis_rec_real_img_mask_saturated
