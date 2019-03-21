@@ -38,8 +38,7 @@ class AusDataset(DatasetBase):
         # start_time = time.time()
         real_img = None
         real_cond = None
-        real_emo = None
-        while real_img is None or real_cond is None or real_emo is None:
+        while real_img is None or real_cond is None:
             # if sample randomly: overwrite index
             if not self._opt.serial_batches:
                 index = random.randint(0, self._dataset_size - 1)
@@ -49,39 +48,21 @@ class AusDataset(DatasetBase):
 
             real_img, real_img_path = self._get_img_by_id(sample_id)
             real_cond = self._get_cond_by_id(sample_id)
-            real_emo = self._get_emo_by_id(sample_id)
 
             if real_img is None:
                 print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id+'.jpg')
             if real_cond is None:
                 print 'error reading aus %s, skipping sample' % sample_id
-            if real_emo is None:
-                print 'error reading emo %s, skipping sample' % sample_id
 
 
-        real_emo = np.array(real_emo, dtype=np.int32)
-        one_hot_emo = np.zeros((self._opt.batch_size,11))
-        one_hot_emo[(np.arange(self._opt.batch_size), np.array(real_emo))] = 1
-        real_emo = one_hot_emo
 
         desired_cond = self._generate_random_cond()
-        desired_emo = np.zeros((self._opt.batch_size,))
-        for i in range(self._opt.batch_size):
-            tmp, _ = self._get_emo_from_cond(desired_cond[i])
-            desired_emo[i] = tmp
-            
-        one_hot_emo = np.zeros((self._opt.batch_size,16))
-        one_hot_emo[(np.arange(self._opt.batch_size), np.array(desired_emo))] = 1
-        desired_emo = one_hot_emo
-
         # transform data
         img = self._transform(Image.fromarray(real_img))
 
         # pack data
         sample = {'real_img': img,
                   'real_cond': real_cond,
-                  'real_emo':real_emo,
-                  'desired_emo': desired_emo,
                   'desired_cond': desired_cond,
                   'sample_id': sample_id,
                   'real_img_path': real_img_path
@@ -91,10 +72,6 @@ class AusDataset(DatasetBase):
 
         return sample
 
-    def _get_emo_from_cond(self, desired_cond):
-        real_emo, name = tutils.get_emotion_label_from_aus(self._aus_dict, self._labels, desired_cond)
-        return real_emo, name
-
 
     def __len__(self):
         return self._dataset_size
@@ -103,7 +80,6 @@ class AusDataset(DatasetBase):
         self._root = self._opt.data_dir
         self._imgs_dir = os.path.join(self._root, self._opt.train_images_folder) if self._is_for_train else os.path.join(self._root, self._opt.test_images_folder)
         conds_filepath = self._opt.training_aus_file if self._is_for_train else self._opt.test_aus_file
-        emos_filepath = self._opt.emo_training_file if self._is_for_train else self._opt.emo_test_file
 
         # read ids
         use_ids_filepath = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
@@ -111,10 +87,7 @@ class AusDataset(DatasetBase):
 
         # read aus
         self._conds = self._read_conds(conds_filepath)
-        self._emos = self._read_emos(emos_filepath)
-        print('#emotions coming from data: ', len(self._emos.keys()))
         self._ids = list(set(self._ids).intersection(set(self._conds.keys())))
-        self._ids = list(set(self._ids).intersection(set(self._emos.keys())))
 
         # dataset size
         self._dataset_size = len(self._ids)
@@ -143,27 +116,10 @@ class AusDataset(DatasetBase):
         with open(file_path, 'rb') as f:
             return pickle.load(f)
 
-    def _read_emos(self, file_path):
-        ids = np.loadtxt(file_path, delimiter='\n', dtype=np.str)
-        cols = np.array([id.split('\t') for id in ids])
-        labels = np.array(cols[:, 1], dtype = np.int32)
-        names = cols[:, 0]
-        emos = dict()
-        for i in range(len(names)):
-            emos[names[i]] = labels[i]
-        return emos
-
     def _get_cond_by_id(self, id):
         if id in self._conds:
             cond = np.array(self._conds[id], dtype = np.float32)/5.0
             return cond
-        else:
-            return None
-
-    def _get_emo_by_id(self, id):
-        if id in self._emos:
-            emo = np.array(self._emos[id], dtype = np.float32)
-            return emo
         else:
             return None
 

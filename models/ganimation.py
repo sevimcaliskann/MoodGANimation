@@ -291,7 +291,7 @@ class GANimation(BaseModel):
         self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
 
         # D(fake_I)
-        d_fake_desired_img_prob, _, _ = self._D.forward(fake_imgs_masked.detach())
+        d_fake_desired_img_prob, _ = self._D.forward(fake_imgs_masked.detach())
         self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
 
         # combine losses
@@ -302,7 +302,7 @@ class GANimation(BaseModel):
         # interpolate sample
         alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._real_img)
         interpolated = Variable(alpha * self._real_img.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
-        interpolated_prob, _, _ = self._D(interpolated)
+        interpolated_prob, _ = self._D(interpolated)
 
         # compute gradients
         grad = torch.autograd.grad(outputs=interpolated_prob,
