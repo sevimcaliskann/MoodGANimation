@@ -65,7 +65,8 @@ class MoodDataset(DatasetBase):
 
     def _read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
-        return [id for id in ids]
+        return ids
+        #return [id[:-4] for id in ids]
 
     def _read_dataset_paths(self):
         self._root = self._opt.data_dir
@@ -75,8 +76,8 @@ class MoodDataset(DatasetBase):
 
         # read ids
         self._ids = self._read_ids(use_ids_filepath)
-        self._moods, self._emos = self._read_info(info_filepath)
-	self._ids = list(set(self._ids).intersection(set(self._moods.keys())))
+        self._moods, _ = self._read_info(info_filepath)
+        self._ids = list(set(self._ids).intersection(set(self._moods.keys())))
         print('#data: ', len(self._ids))
 
         # dataset size
