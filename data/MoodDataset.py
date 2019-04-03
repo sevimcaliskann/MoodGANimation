@@ -76,7 +76,7 @@ class MoodDataset(DatasetBase):
 
         # read ids
         self._ids = self._read_ids(use_ids_filepath)
-        self._moods, _ = self._read_info(info_filepath)
+        self._moods = self._read_info(info_filepath)
         self._ids = list(set(self._ids).intersection(set(self._moods.keys())))
         print('#data: ', len(self._ids))
 
@@ -107,50 +107,24 @@ class MoodDataset(DatasetBase):
         names = [name.split('/')[1] for name in names]
         names = [name.split(',')[0] for name in names]
 
-        emos = np.array([row[-1].split(',')[1] for row in cols], dtype = np.int32)
-        one_hot = np.zeros((len(emos), emos.max()+1))
-        one_hot[np.arange(len(emos)), emos] = 1
-
         cols = cols[:, -1]
         mood = [col.split(',')[-2:] for col in cols]
 
         mood_dict = dict(zip(names, mood))
-        emos_dict = dict(zip(names, one_hot))
-
         keys = set(self._ids).intersection(set(mood_dict.keys()))
         mood_dict = {k:mood_dict[k] for k in keys}
-
-        keys = set(self._ids).intersection(set(emos_dict.keys()))
-        emos_dict = {k:emos_dict[k] for k in keys}
-        return mood_dict, emos_dict
+        return mood_dict
 
     def _get_cond_by_id(self, id):
-        mood = None
-        #emo = None
-        while mood is None:
-            mood = self._get_mood_by_id(id)
-            #emo = self._get_emo_by_id(id)
-            #if mood is None:
-            #    print 'error reading mood %s, skipping sample' % id
-            #if emo is None:
-            #    print 'error reading emotion %s, skipping sample' % id
-
-        #cond = np.concatenate((mood, emo), axis = 0)
-        cond = np.array(mood)
-        cond = (cond+1)/2
-        return cond
+        mood = self._get_mood_by_id(id)
+        return mood
 
     def _get_mood_by_id(self, id):
         if id in self._moods.keys():
             cond = np.array(self._moods[id], dtype = np.float32)
+            cond = np.array(cond)
+            cond = (cond+1)/2
             return cond
-        else:
-            return None
-
-    def _get_emo_by_id(self, id):
-        if id in self._emos.keys():
-            emo = np.array(self._emos[id], dtype = np.float32)
-            return emo
         else:
             return None
 
@@ -166,10 +140,6 @@ class MoodDataset(DatasetBase):
             rand_sample_id = self._ids[random.randint(0, self._dataset_size - 1)]
             mood = self._get_mood_by_id(rand_sample_id)
             mood += np.random.uniform(-0.1, 0.1, mood.shape)
-
-            #emo = self._get_emo_by_id(rand_sample_id)
-            #emo += np.random.uniform(-0.1, 0.1, emo.shape)
-            #cond = np.concatenate((mood, emo), axis=0)
 	    cond = np.array(mood)
 
         #minV = np.amin(cond)

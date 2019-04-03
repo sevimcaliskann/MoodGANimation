@@ -182,10 +182,4 @@ class AusDataset(DatasetBase):
             cond = self._get_cond_by_id(rand_sample_id)
             cond += np.random.uniform(-0.1, 0.1, cond.shape)
 	    cond[cond<0] = 0
-
-        #minV = np.amin(cond)
-        #maxV = np.amax(cond)
-	    #if minV != maxV:
-        #        cond -= minV
-        #    cond /= (maxV - minV)
         return cond
