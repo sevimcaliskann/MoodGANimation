@@ -35,7 +35,8 @@ class MorphFacesInTheWild:
         #img = cv2.resize(img,(newX,newY))
         morphed_img = self._img_morph(img, expression)
         #morphed_img = cv2.cvtColor(morphed_img, cv2.COLOR_RGB2BGR)
-        output_name = os.path.join(self._opt.output_dir, '{0}_epoch_{1}_out.png'.format(os.path.basename(img_path)[:-4], str(self._opt.load_epoch)))
+        output_name = os.path.join(self._opt.output_dir, '{0}_epoch_{1}_intensity_{2}_out.png'.format(os.path.basename(img_path)[:-4], \
+        str(self._opt.load_epoch), str(expression[0])))
         self._save_img(morphed_img, output_name)
         print('Morphed image is saved at path {}'.format(output_name))
 
@@ -56,8 +57,9 @@ class MorphFacesInTheWild:
 
     def _morph_face(self, face, expression):
         face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0)
-        expression = torch.unsqueeze(torch.from_numpy(expression/5.0), 0)
-        test_batch1 = {'real_img': face, 'real_cond': expression, 'desired_cond': expression, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
+        expression = torch.unsqueeze(torch.from_numpy(expression), 0)
+        neutral = torch.unsqueeze(torch.from_numpy(np.array([0.5, 0.5])), 0)
+        test_batch1 = {'real_img': face, 'real_cond': neutral, 'desired_cond': expression, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
         self._model.set_input(test_batch1)
         imgs1, _ = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
         return imgs1['concat']
@@ -105,11 +107,11 @@ def main():
         expression[opt.au_index] = i
         print('expression: ', expression)
         morph.morph_file(image_path, expression)'''
-    expression = np.zeros(13)
-    expression[3] = 1
-
-    print('expression: ', expression)
-    morph.morph_file(image_path, expression)
+    for i in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+        expression = np.zeros(2)
+        expression[0] = i
+        expression[1] = i
+        morph.morph_file(image_path, expression)
     #expression = np.random.uniform(0, 1, opt.cond_nc)
     #expression = generate_random_cond(conds)
 
