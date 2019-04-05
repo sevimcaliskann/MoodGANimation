@@ -144,8 +144,7 @@ class MoodDataset(DatasetBase):
                 cond = None
                 continue
             #mood += np.random.uniform(-0.1, 0.1, mood.shape)
-            cond += np.random.uniform(-0.05, 0.05, mood.shape)
-	    cond = np.array(mood)
+            cond += np.random.uniform(-0.05, 0.05, cond.shape)
 
         #minV = np.amin(cond)
         #maxV = np.amax(cond)
