@@ -43,7 +43,10 @@ class MoodDataset(DatasetBase):
 
 
         #if index % 4
-        desired_cond = self._generate_random_cond(upper = 1.0, lower = 0.5 )
+        if index%2 ==0:
+            desired_cond = self._generate_random_cond(upper = 1.0, lower = 0.5 )
+        else:
+            desired_cond = self._generate_random_cond()
 
         # transform data
         img = self._transform(Image.fromarray(real_img))
