@@ -224,6 +224,11 @@ class GANimation(BaseModel):
                 self._optimizer_G.step()
 
     def _forward_G(self, keep_data_for_visuals):
+        #desired = self._desired_cond.data[0, ...].cpu().numpy()
+        #real = self._real_cond.data[0, ...].cpu().numpy()
+        #diff = desired - real
+        #mask_loss_weight = 1 / (1+np.linalg.norm(diff))
+
         # generate fake images
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
