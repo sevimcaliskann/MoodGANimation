@@ -72,6 +72,7 @@ class GANimation(BaseModel):
     def _init_losses(self):
         # define loss functions
         self._criterion_cycle = torch.nn.L1Loss().cuda()
+        self._robust_cycle = torch.nn.SmoothL1Loss().cuda()
         self._criterion_D_cond = torch.nn.MSELoss().cuda()
 
         # init losses G
@@ -224,10 +225,6 @@ class GANimation(BaseModel):
                 self._optimizer_G.step()
 
     def _forward_G(self, keep_data_for_visuals):
-        #desired = self._desired_cond.data[0, ...].cpu().numpy()
-        #real = self._real_cond.data[0, ...].cpu().numpy()
-        #diff = desired - real
-        #mask_loss_weight = 1 / (1+np.linalg.norm(diff))
 
         # generate fake images
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
@@ -248,7 +245,9 @@ class GANimation(BaseModel):
         #self._loss_g_cyc_cond = self._criterion_D_cond(d_cyc_desired_img_masked_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
 
         # l_cyc(G(G(Ic1,c2), c1)*M)
-        self._loss_g_cyc = self._criterion_cycle(rec_real_imgs, self._real_img) * self._opt.lambda_cyc
+        #self._loss_g_cyc = self._criterion_cycle(rec_real_imgs, self._real_img) * self._opt.lambda_cyc
+        self._loss_g_cyc = (rec_real_img_mask*self._criterion_cycle(rec_real_imgs, self._real_img) + \
+            (1-rec_real_img_mask)*self._robust_cycle(rec_real_imgs, self._real_img))*self._opt.lambda_cyc
 
         # loss mask
         self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask

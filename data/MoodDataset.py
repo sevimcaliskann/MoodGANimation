@@ -144,7 +144,8 @@ class MoodDataset(DatasetBase):
         while cond is None:
             rand_sample_id = self._ids[random.randint(0, self._dataset_size - 1)]
             cond = self._get_mood_by_id(rand_sample_id)
-            if (abs(cond)>upper).any() or (abs(cond)<lower).any():
+            check = cond - self._real_cond
+            if (abs(check)>upper).any() or (abs(check)<lower).any():
                 cond = None
                 continue
             #mood += np.random.uniform(-0.1, 0.1, mood.shape)
