@@ -246,8 +246,10 @@ class GANimation(BaseModel):
 
         # l_cyc(G(G(Ic1,c2), c1)*M)
         #self._loss_g_cyc = self._criterion_cycle(rec_real_imgs, self._real_img) * self._opt.lambda_cyc
-        self._loss_g_cyc = (rec_real_img_mask*self._criterion_cycle(rec_real_imgs, self._real_img) + \
-            (1-rec_real_img_mask)*self._robust_cycle(rec_real_imgs, self._real_img))*self._opt.lambda_cyc
+        self._loss_g_cyc = (self._criterion_cycle(rec_real_img_mask*rec_real_imgs, rec_real_img_mask*self._real_img) + \
+            self._robust_cycle((1-rec_real_img_mask)*rec_real_imgs, (1-rec_real_img_mask)*self._real_img))*self._opt.lambda_cyc
+
+
 
         # loss mask
         self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask
