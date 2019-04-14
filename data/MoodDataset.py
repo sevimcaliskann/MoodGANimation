@@ -42,11 +42,16 @@ class MoodDataset(DatasetBase):
                 print 'error reading cond %s, skipping sample' % sample_id
 
 
+        desired_cond = self._generate_random_cond(real_cond)
+
         #if index % 4
-        if index%10 ==0:
-            desired_cond = self._generate_random_cond()
-        else:
-            desired_cond = self._generate_random_cond(upper = 1.0, lower = 0.5 )
+        #if index%10 ==0:
+        #    desired_cond = self._generate_random_cond(real_cond)
+        #else:
+        #    desired_cond = self._generate_random_cond(real_cond, upper = 2.0, lower = 0.5 )
+
+        real_cond = (real_cond+1)/2
+        desired_cond = (desired_cond+1)/2
 
 
         # transform data
@@ -128,7 +133,6 @@ class MoodDataset(DatasetBase):
         if id in self._moods.keys():
             cond = np.array(self._moods[id], dtype = np.float32)
             cond = np.array(cond)
-            cond = (cond+1)/2
             return cond
         else:
             return None
@@ -139,17 +143,18 @@ class MoodDataset(DatasetBase):
         #filepath = os.path.join(filepath, 'face_det_000000.bmp')
         return cv_utils.read_cv2_img(filepath), filepath
 
-    def _generate_random_cond(self, upper = 1.0, lower = 0):
+    def _generate_random_cond(self, real_cond, upper = 2.0, lower = 0):
         cond = None
         while cond is None:
             rand_sample_id = self._ids[random.randint(0, self._dataset_size - 1)]
             cond = self._get_mood_by_id(rand_sample_id)
-            check = cond - self._real_cond
+            check = cond - real_cond
             if (abs(check)>upper).any() or (abs(check)<lower).any():
                 cond = None
                 continue
             #mood += np.random.uniform(-0.1, 0.1, mood.shape)
             cond += np.random.uniform(-0.05, 0.05, cond.shape)
+
 
         #minV = np.amin(cond)
         #maxV = np.amax(cond)
