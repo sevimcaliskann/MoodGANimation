@@ -39,6 +39,12 @@ class MorphFacesInTheWild:
         self._save_img(morphed_img, output_name)
         print('Morphed image is saved at path {}'.format(output_name))
 
+    def find_disriminator_regression(self, face):
+        face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0).cuda()
+        _, d_img_cond = self._model._D.forward(face)
+        d_img_cond = d_img_cond.data.cpu().numpy().astype('float32')
+        return d_img_cond
+
 
     def _img_morph(self, img, expression):
         bbs = face_recognition.face_locations(img)
@@ -50,13 +56,17 @@ class MorphFacesInTheWild:
         else:
             face = face_utils.resize_face(img)
 
-        morphed_face = self._morph_face(face, expression)
+        img_cond = self.find_disriminator_regression(face)
+        print('from discriminator: ', img_cond)
+
+        morphed_face = self._morph_face(face, expression, img_cond)
 
         return morphed_face
 
-    def _morph_face(self, face, expression):
+    def _morph_face(self, face, expression, real_cond):
         face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0)
-        reconst = np.zeros(17)
+        #reconst = np.zeros(17)
+        reconst = real_cond
         reconst = torch.unsqueeze(torch.from_numpy(reconst), 0)
         expression = torch.unsqueeze(torch.from_numpy(expression), 0)
         test_batch1 = {'real_img': face, 'real_cond': reconst, 'desired_cond': expression, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
@@ -88,7 +98,7 @@ def main():
     print("morph objetc is created")
     image_path = opt.input_path
     expression = np.zeros(17)
-    for i in [0, 0.2, 0.4, 0.5, 0.8, 1.0]:
+    for i in [0, 0.1, 0.3, 0.7, 0.8, 0.9]:
         expression[opt.au_index] = i
         print('expression: ', expression)
         morph.morph_file(image_path, expression)
