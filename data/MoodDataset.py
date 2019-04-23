@@ -8,9 +8,7 @@ import numpy as np
 import pickle
 from utils import cv_utils
 from utils import test_utils as tutils
-#import face_recognition
-#import dlib
-#from skimage import io
+import pickle
 
 
 class MoodDataset(DatasetBase):
@@ -45,7 +43,7 @@ class MoodDataset(DatasetBase):
         desired_cond = self._generate_random_cond(real_cond)
 
         #if index % 4
-        #if index%10 ==0:
+        #if index%4 ==0:
         #    desired_cond = self._generate_random_cond(real_cond)
         #else:
         #    desired_cond = self._generate_random_cond(real_cond, upper = 2.0, lower = 0.5 )
@@ -110,20 +108,25 @@ class MoodDataset(DatasetBase):
         self._transform = transforms.Compose(transform_list)
 
     def _read_info(self, file_path):
-        ids = np.loadtxt(file_path, delimiter = '\n', dtype = np.str)
-        ids = ids[1:]
-        cols = np.array([id.split(';') for id in ids])
-        names = cols[:, 0]
-        names = [name.split('/')[1] for name in names]
-        names = [name.split(',')[0] for name in names]
+        if file_path[-4:]=='.csv':
+            ids = np.loadtxt(file_path, delimiter = '\n', dtype = np.str)
+            ids = ids[1:]
+            cols = np.array([id.split(';') for id in ids])
+            names = cols[:, 0]
+            names = [name.split('/')[1] for name in names]
+            names = [name.split(',')[0] for name in names]
 
-        cols = cols[:, -1]
-        mood = [col.split(',')[-2:] for col in cols]
+            cols = cols[:, -1]
+            mood = [col.split(',')[-2:] for col in cols]
 
-        mood_dict = dict(zip(names, mood))
-        keys = set(self._ids).intersection(set(mood_dict.keys()))
-        mood_dict = {k:mood_dict[k] for k in keys}
-        return mood_dict
+            mood_dict = dict(zip(names, mood))
+            keys = set(self._ids).intersection(set(mood_dict.keys()))
+            mood_dict = {k:mood_dict[k] for k in keys}
+            return mood_dict
+        elif file_path[-4:]=='.pkl':
+            with open(file_path, 'rb') as f:
+                return pickle.load(f)
+
 
     def _get_cond_by_id(self, id):
         mood = self._get_mood_by_id(id)
