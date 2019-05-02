@@ -48,8 +48,8 @@ class MoodDataset(DatasetBase):
         #else:
         #    desired_cond = self._generate_random_cond(real_cond, upper = 2.0, lower = 0.5 )
 
-        real_cond = (real_cond+1)/2
-        desired_cond = (desired_cond+1)/2
+        #real_cond = (real_cond+1)/2
+        #desired_cond = (desired_cond+1)/2
 
 
         # transform data
@@ -79,7 +79,7 @@ class MoodDataset(DatasetBase):
     def _read_dataset_paths(self):
         self._root = self._opt.data_dir
         self._imgs_dir = os.path.join(self._root, self._opt.train_images_folder) if self._is_for_train else os.path.join(self._root, self._opt.test_images_folder)
-        info_filepath = self._opt.affectnet_info_file
+        info_filepath = self._opt.train_info_file if self._is_for_train else self._opt.test_info_file
         use_ids_filepath = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
 
         # read ids

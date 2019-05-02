@@ -254,6 +254,8 @@ class GANimation(BaseModel):
         # loss mask
         self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask
         self._loss_g_mask_2 = torch.mean(rec_real_img_mask) * self._opt.lambda_mask
+        #self._loss_g_mask_1 = (torch.norm(fake_img_mask)**2) * self._opt.lambda_mask
+        #self._loss_g_mask_2 = (torch.norm(rec_real_img_mask)**2) * self._opt.lambda_mask
         self._loss_g_mask_1_smooth = self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
         self._loss_g_mask_2_smooth = self._compute_loss_smooth(rec_real_img_mask) * self._opt.lambda_mask_smooth
 
@@ -323,8 +325,10 @@ class GANimation(BaseModel):
         return -torch.mean(estim) if is_real else torch.mean(estim)
 
     def _compute_loss_smooth(self, mat):
-        return torch.sum(torch.abs(mat[:, :, :, :-1] - mat[:, :, :, 1:])) + \
-               torch.sum(torch.abs(mat[:, :, :-1, :] - mat[:, :, 1:, :]))
+        return torch.sum(torch.abs(mat[:, :, :, :-1] - mat[:, :, :, 1:])**2) + \
+               torch.sum(torch.abs(mat[:, :, :-1, :] - mat[:, :, 1:, :])**2)
+        #return torch.sum(torch.abs(mat[:, :, :, :-1] - mat[:, :, :, 1:])) + \
+        #       torch.sum(torch.abs(mat[:, :, :-1, :] - mat[:, :, 1:, :]))
 
     def get_current_errors(self):
         loss_dict = OrderedDict([#('g_fake', self._loss_g_fake.detach()),
