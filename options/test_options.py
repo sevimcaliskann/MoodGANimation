@@ -8,4 +8,7 @@ class TestOptions(BaseOptions):
         self._parser.add_argument('--output_dir', type=str, default='./output', help='output path')
         self._parser.add_argument('--aus_csv_folder', type=str, default='./output', help='folder for reading aus from csv files')
         self._parser.add_argument('--au_index', type=int, default=0, help='which epoch to load? set to -1 to use latest cached model')
+        self._parser.add_argument('--moods_pickle_file', type=str, default='/srv/glusterfs/csevim/datasets/affectnet/affectnet_moods.pkl',
+                    help='We are gonna select moods from this dataset of moods')
+
         self.is_train = False
