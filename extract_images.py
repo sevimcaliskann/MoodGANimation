@@ -16,7 +16,7 @@ from PIL import Image
 
 class Extract():
 
-    def __init__(self, opt, output_dir, moods_file, ids_file):
+    def __init__(self, opt, output_dir, moods_file, emos_file, ids_file):
         self._opt = opt
         self._model = ModelsFactory.get_by_name(self._opt.model, self._opt)
         self._model.set_eval()
@@ -26,8 +26,12 @@ class Extract():
                                                                    std=[0.5, 0.5, 0.5])
                                               ])
         self.output_dir = output_dir
-        self.moods = self._read_moods(moods_file)
         self.ids = self._read_ids(ids_file)
+        self.moods = self._read_moods(moods_file)
+        self.emos = self._read_moods(emos_file)
+
+
+
 
 
     def _read_ids(self, file_path):
@@ -39,19 +43,24 @@ class Extract():
             mood_dict = pickle.load(f)
         return mood_dict
 
+    def _read_emos(self, file_path):
+        with open(file_path, 'rb') as f:
+            emos_dict = pickle.load(f)
+        return emos_dict
+
     def morph_file(self, img_folder, img_name):
         img_path = os.path.join(img_folder, img_name)
         img = cv_utils.read_cv2_img(img_path)
 	if img is None:
 	    print('%s could not be read' % img_path)
 	    return
-        expression = self.generate_random_cond()
+        expression, emo = self.generate_random_cond()
         morphed_img = self._img_morph(img, expression)
         #output_name = os.path.join(self._opt.output_dir, '{0}_epoch_{1}_intensity_{2}_out.png'.format(os.path.basename(img_path)[:-4], \
         #str(self._opt.load_epoch), str(expression[0])))
         save_path = os.path.join(self.output_dir, img_name)
         self._save_img(morphed_img, save_path)
-        #return morphed_img
+        return emo
 
     def _img_morph(self, img, expression):
         bbs = face_recognition.face_locations(img)
@@ -84,11 +93,13 @@ class Extract():
 
     def generate_random_cond(self):
         cond = None
-        while cond is None:
+        emo = None
+        while cond is None or emo is None:
             rand_sample_id = self.moods.keys()[np.random.randint(0, len(self.moods) - 1)]
             cond = self.moods[rand_sample_id].astype(np.float64)
+            emo = self.emos[rand_sample_id]
             cond += np.random.uniform(-0.1, 0.1, cond.shape)
-        return cond
+        return cond, emo
 
 
 if __name__ == "__main__":
@@ -100,7 +111,10 @@ if __name__ == "__main__":
     print('START')
     if not os.path.isdir(opt.output_dir):
         os.makedirs(opt.output_dir)
-    extractor = Extract(opt, opt.output_dir, opt.moods_pickle_file, opt.test_ids_file)
+    extractor = Extract(opt, opt.output_dir, opt.moods_pickle_file, opt.emo_test_file, opt.test_ids_file)
     images_folder = os.path.join(opt.data_dir, opt.test_images_folder)
+    emo_dict = dict()
     for id in tqdm(extractor.ids):
-        extractor.morph_file(images_folder, id)
+        emo = extractor.morph_file(images_folder, id)
+        emo_dict[id] = emo
+    pickle.dump(emo_dict, open(os.path.join(images_folder, 'emos.pkl'), 'w'))
