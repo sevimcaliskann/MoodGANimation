@@ -117,4 +117,4 @@ if __name__ == "__main__":
     for id in tqdm(extractor.ids):
         emo = extractor.morph_file(images_folder, id)
         emo_dict[id] = emo
-    pickle.dump(emo_dict, open(os.path.join(images_folder, 'emos.pkl'), 'w'))
+    pickle.dump(emo_dict, open(os.path.join(opt.output_dir, 'emos2.pkl'), 'w'))
