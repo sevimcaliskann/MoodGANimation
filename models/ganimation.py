@@ -87,6 +87,8 @@ class GANimation(BaseModel):
         #self._loss_g_cyc_cond = Variable(self._Tensor([0]))
         self._loss_g_mask_1_smooth = Variable(self._Tensor([0]))
         self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
+        self._loss_inv_mask = Variable(self._Tensor([0]))
+        self._loss_color_maps = Variable(self._Tensor([0]))
         self._loss_rec_real_img_rgb = Variable(self._Tensor([0]))
         self._loss_g_fake_imgs_smooth = Variable(self._Tensor([0]))
         self._loss_g_unmasked_rgb = Variable(self._Tensor([0]))
@@ -259,6 +261,10 @@ class GANimation(BaseModel):
         self._loss_g_mask_1_smooth = self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
         self._loss_g_mask_2_smooth = self._compute_loss_smooth(rec_real_img_mask) * self._opt.lambda_mask_smooth
 
+        mask_inverse = torch.inverse(fake_img_mask)
+        self._loss_inv_mask = self._criterion_cycle(rec_real_img_mask, mask_inverse)*self._opt.lambda_mask_inv
+        self._loss_color_maps = self._criterion_cycle(fake_imgs, rec_real_img_rgb)*self._opt.lambda_color_maps
+
         # keep data for visualization
         if keep_data_for_visuals:
             self._vis_real_img = util.tensor2im(self._input_real_img)
@@ -279,7 +285,8 @@ class GANimation(BaseModel):
         return self._loss_g_masked_fake + self._loss_g_masked_cond + \
                self._loss_g_cyc + \
                self._loss_g_mask_1 + self._loss_g_mask_2 + \
-               self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth
+               self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth + \
+               self._loss_inv_mask + self._loss_color_maps
 
     def _forward_D(self):
         # generate fake images
@@ -343,6 +350,9 @@ class GANimation(BaseModel):
                                  ('g_m2', self._loss_g_mask_2.detach()),
                                  ('g_m1_s', self._loss_g_mask_1_smooth.detach()),
                                  ('g_m2_s', self._loss_g_mask_2_smooth.detach()),
+                                 ('g_mask_inv', self._loss_inv_mask.detach()),
+                                 ('g_color_maps', self._loss_color_maps.detach()),
+
                                  #('g_idt', self._loss_g_idt.detach()),
                                  ('d_real', self._loss_d_real.detach()),
                                  ('d_cond', self._loss_d_cond.detach()),
@@ -360,9 +370,6 @@ class GANimation(BaseModel):
 
         # input visuals
         #title_input_img = os.path.basename(self._input_real_img_path[0])
-        '''visuals['1_input_img'] = plot_utils.plot_au(self._vis_real_img, self._vis_real_cond, title=title_input_img)
-        visuals['2_fake_img'] = plot_utils.plot_au(self._vis_fake_img, self._vis_desired_cond)
-        visuals['3_rec_real_img'] = plot_utils.plot_au(self._vis_rec_real_img, self._vis_real_cond)'''
 
         visuals['1_input_img'] = np.flip(self._vis_real_img, axis =2)
         visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=2)
