@@ -145,8 +145,8 @@ class Train:
         tmp = np.transpose(visuals['2_fake_img'], (2,0,1)).astype(np.float32)
         torch.cat((self._fake_imgs, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
-        tmp = np.transpose(visuals['3_rec_real_img'], (2,0,1)).astype(np.float32)
-        torch.cat((self._rec_real_imgs, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
+        #tmp = np.transpose(visuals['3_rec_real_img'], (2,0,1)).astype(np.float32)
+        #torch.cat((self._rec_real_imgs, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
         tmp = np.transpose(visuals['4_fake_img_unmasked'], (2,0,1)).astype(np.float32)
         torch.cat((self._fake_imgs_unmasked, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
@@ -154,11 +154,11 @@ class Train:
         tmp = np.transpose(visuals['5_fake_img_mask'], (2,0,1)).astype(np.float32)
         torch.cat((self._fake_imgs_mask, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
-        tmp = np.transpose(visuals['6_rec_real_img_mask'], (2,0,1)).astype(np.float32)
-        torch.cat((self._rec_real_imgs_mask, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
+        #tmp = np.transpose(visuals['6_rec_real_img_mask'], (2,0,1)).astype(np.float32)
+        #torch.cat((self._rec_real_imgs_mask, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
-        tmp = np.transpose(visuals['7_cyc_img_unmasked'], (2,0,1)).astype(np.float32)
-        torch.cat((self._cyc_imgs_unmasked, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
+        #tmp = np.transpose(visuals['7_cyc_img_unmasked'], (2,0,1)).astype(np.float32)
+        #torch.cat((self._cyc_imgs_unmasked, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
         tmp = visuals['8_real_cond']
         self._real_conds.append(tmp.tolist())
