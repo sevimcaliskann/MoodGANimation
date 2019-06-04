@@ -282,8 +282,11 @@ class GANimation(BaseModel):
             #self._vis_batch_rec_real_img = util.tensor2im(rec_real_imgs.data, idx=-1)
 
         # combine losses
+        #return self._loss_g_masked_fake + self._loss_g_masked_cond + \
+        #       self._loss_g_cyc + \
+        #       self._loss_g_mask_1 + self._loss_g_mask_1_smooth
+
         return self._loss_g_masked_fake + self._loss_g_masked_cond + \
-               self._loss_g_cyc + \
                self._loss_g_mask_1 + self._loss_g_mask_1_smooth
 
     def _forward_D(self):
