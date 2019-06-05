@@ -252,12 +252,11 @@ class GANimation(BaseModel):
 
 
         # loss mask
-        #self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask
-        #self._loss_g_mask_2 = torch.mean(rec_real_img_mask) * self._opt.lambda_mask
-        self._loss_g_mask_1 = self._criterion_cycle(1, torch.mean(fake_img_mask)) * self._opt.lambda_mask
-        self._loss_g_mask_2 = self._criterion_cycle(1, torch.mean(rec_real_img_mask)) * self._opt.lambda_mask
-        #self._loss_g_mask_1 = (torch.norm(fake_img_mask)**2) * self._opt.lambda_mask
-        #self._loss_g_mask_2 = (torch.norm(rec_real_img_mask)**2) * self._opt.lambda_mask
+        self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask
+        self._loss_g_mask_2 = torch.mean(rec_real_img_mask) * self._opt.lambda_mask
+        #self._loss_g_mask_1 = self._criterion_cycle(1, torch.mean(fake_img_mask)) * self._opt.lambda_mask
+        #self._loss_g_mask_2 = self._criterion_cycle(1, torch.mean(rec_real_img_mask)) * self._opt.lambda_mask
+
         self._loss_g_mask_1_smooth = self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
         self._loss_g_mask_2_smooth = self._compute_loss_smooth(rec_real_img_mask) * self._opt.lambda_mask_smooth
 
