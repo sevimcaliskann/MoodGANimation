@@ -254,7 +254,8 @@ class GANimation(BaseModel):
 
 
         # loss mask
-        self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask
+        #self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask
+        self._loss_g_mask_1 = self._criterion_cycle(1, torch.mean(fake_img_mask)) * self._opt.lambda_mask
         #self._loss_g_mask_1 = self._criterion_cycle(1, torch.mean(fake_img_mask)) * self._opt.lambda_mask
 
 
