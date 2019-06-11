@@ -29,6 +29,9 @@ class Extract():
         self.ids = self._read_ids(ids_file)
         self.moods = self._read_moods(moods_file)
         self.emos = self._read_moods(emos_file)
+        idx = np.random.permutation(len(self.ids))
+        idx = idx[:10000]
+        self.ids = [self.ids[i] for i in idx]
 
 
 
@@ -117,4 +120,4 @@ if __name__ == "__main__":
     for id in tqdm(extractor.ids):
         emo = extractor.morph_file(images_folder, id)
         emo_dict[id] = emo
-    pickle.dump(emo_dict, open(os.path.join(opt.output_dir, 'emos2.pkl'), 'w'))
+    pickle.dump(emo_dict, open(os.path.join(opt.output_dir, 'emos.pkl'), 'w'))
