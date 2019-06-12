@@ -228,6 +228,8 @@ class GANimation(BaseModel):
 
     def _forward_G(self, keep_data_for_visuals):
 
+        #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
+
         # generate fake images
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
@@ -295,6 +297,7 @@ class GANimation(BaseModel):
                self._loss_g_mask_1 + self._loss_g_mask_1_smooth
 
     def _forward_D(self):
+        #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # generate fake images
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
@@ -314,6 +317,7 @@ class GANimation(BaseModel):
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
     def _gradinet_penalty_D(self, fake_imgs_masked):
+        adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # interpolate sample
         alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._real_img)
         interpolated = Variable(alpha * self._real_img.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
@@ -330,7 +334,7 @@ class GANimation(BaseModel):
         # penalize gradients
         grad = grad.view(grad.size(0), -1)
         grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
-        self._loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
+        self._loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp*adaptive
 
         return self._loss_d_gp
 
