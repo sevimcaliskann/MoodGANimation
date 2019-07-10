@@ -73,6 +73,7 @@ class MoodDataset(DatasetBase):
 
     def _read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
+        ids = [id[:-4] for id in ids]
         return ids
         #return [id[:-4] for id in ids]
 
@@ -141,12 +142,13 @@ class MoodDataset(DatasetBase):
             return None
 
     def _get_img_by_id(self, id):
-        filepath = os.path.join(self._imgs_dir, id)
+        filepath = os.path.join(self._imgs_dir, id+'.jpg')
+        #filepath = os.path.join(self._imgs_dir, id)
         #filepath = os.path.join(self._imgs_dir, id+'_aligned')
         #filepath = os.path.join(filepath, 'face_det_000000.bmp')
         return cv_utils.read_cv2_img(filepath), filepath
 
-    def _generate_random_cond(self, real_cond, upper = 2.0, lower = 0):
+    def _generate_random_cond(self, real_cond, upper = 10.0, lower = 0):
         cond = None
         while cond is None:
             rand_sample_id = self._ids[random.randint(0, self._dataset_size - 1)]

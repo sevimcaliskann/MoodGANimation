@@ -13,6 +13,8 @@ import pickle
 import cv2
 from tqdm import tqdm
 from PIL import Image
+import operator
+import math
 
 class Extract():
 
@@ -28,19 +30,66 @@ class Extract():
         self.output_dir = output_dir
         self.ids = self._read_ids(ids_file)
         self.moods = self._read_moods(moods_file)
-        self.emos = self._read_moods(emos_file)
+        self.aus_dict = dict()
+        self.aus_dict['happy'] = [8,14]
+        self.aus_dict['sad'] = [2,10]
+        self.aus_dict['fearful'] = [0,2,12,14]
+        self.aus_dict['angry'] = [2,5] # 24 is not encoded in action units??
+        self.aus_dict['surprised'] = [0,1,14,15]
+        self.aus_dict['disgusted'] = [6, 7, 11]
+        self.aus_dict['happily_surprised'] = [0,1,8,14]
+        self.aus_dict['happily_disgusted'] = [7,8,14]
+        self.aus_dict['sadly_disgusted'] = [2,7]
+        self.aus_dict['fearfully_angry'] = [2,12,14]
+        self.aus_dict['fearfully_surprised'] = [0,1,3,12,14]
+        self.aus_dict['sadly_angry'] = [2,5,10]
+        self.aus_dict['angrily_surprised'] = [2,14,15]
+        self.aus_dict['appalled'] = [2,6,7]
+        self.aus_dict['angrily_disgusted'] = [2,7,11]
+        self.aus_dict['awed'] = [0,1,3,14]
+        self.labels = {'angrily_disgusted':0, 'angrily_surprised':1, 'angry':2, \
+        'appalled':3, 'awed':4, 'disgusted':5, \
+        'fearful':6, 'fearfully_angry':7, 'fearfully_surprised':8, \
+        'happily_disgusted':9, 'happily_surprised':10, 'happy':11, \
+        'sad':12, 'sadly_angry':13, 'sadly_disgusted':14, 	'surprised':15}
+        #self.emos = self._read_moods(emos_file)
 
 
+
+
+    def get_emotion_label_from_aus(self, aus_dict, labels, cond):
+        conf = dict()
+        for k,v in aus_dict.items():
+            conf[k] = self.euclidean_distance(cond[v], len(v))
+
+        name = max(conf.iteritems(), key=operator.itemgetter(1))[0]
+        label = labels[name]
+
+        return label
+
+    def euclidean_distance(self, arr, n) :
+        summation = 0
+        for i in range(0,n) :
+            summation = summation + arr[i]*arr[i]
+
+        # compute geometric mean through
+        # formula pow(product, 1/n) and
+        # return the value to main function.
+        gm = (float)(math.pow(summation, 0.5))
+        return gm
 
 
 
     def _read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
+        ids = [id[:-4] for id in ids]
+        #ids = ids[:25000]
         return ids
 
     def _read_moods(self, file_path):
         with open(file_path, 'rb') as f:
             mood_dict = pickle.load(f)
+        self.ids = list(set(mood_dict.keys()).intersection(set(self.ids)))
         return mood_dict
 
     def _read_emos(self, file_path):
@@ -53,7 +102,7 @@ class Extract():
         img = cv_utils.read_cv2_img(img_path)
 	if img is None:
 	    print('%s could not be read' % img_path)
-	    return
+	    return None
         expression, emo = self.generate_random_cond()
         morphed_img = self._img_morph(img, expression)
         #output_name = os.path.join(self._opt.output_dir, '{0}_epoch_{1}_intensity_{2}_out.png'.format(os.path.basename(img_path)[:-4], \
@@ -97,7 +146,9 @@ class Extract():
         while cond is None or emo is None:
             rand_sample_id = self.moods.keys()[np.random.randint(0, len(self.moods) - 1)]
             cond = self.moods[rand_sample_id].astype(np.float64)
-            emo = self.emos[rand_sample_id]
+            cond = cond/5
+            #emo = self.emos[rand_sample_id]
+            emo = self.get_emotion_label_from_aus(self.aus_dict, self.labels, cond)
             cond += np.random.uniform(-0.1, 0.1, cond.shape)
         return cond, emo
 
@@ -115,6 +166,7 @@ if __name__ == "__main__":
     images_folder = os.path.join(opt.data_dir, opt.test_images_folder)
     emo_dict = dict()
     for id in tqdm(extractor.ids):
-        emo = extractor.morph_file(images_folder, id)
-        emo_dict[id] = emo
-    pickle.dump(emo_dict, open(os.path.join(opt.output_dir, 'emos2.pkl'), 'w'))
+        emo = extractor.morph_file(images_folder, id+'.jpg')
+        if emo!=None:
+            emo_dict[id+'.jpg'] = emo
+    pickle.dump(emo_dict, open(os.path.join(opt.output_dir, 'emos.pkl'), 'w'))
