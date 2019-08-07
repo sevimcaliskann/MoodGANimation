@@ -73,8 +73,8 @@ class MoodDataset(DatasetBase):
 
     def _read_ids(self, file_path):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
-        return ids
-        #return [id[:-4] for id in ids]
+        #return ids
+        return [id[:-4] for id in ids]
 
     def _read_dataset_paths(self):
         self._root = self._opt.data_dir
