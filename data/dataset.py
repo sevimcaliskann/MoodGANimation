@@ -14,9 +14,12 @@ class DatasetFactory:
         if dataset_name == 'aus':
             from data.dataset_aus import AusDataset
             dataset = AusDataset(opt, is_for_train)
-	elif dataset_name == 'mood':
-	    from data.MoodDataset import MoodDataset
-	    dataset = MoodDataset(opt, is_for_train)
+        elif dataset_name == 'mood':
+            from data.MoodDataset import MoodDataset
+            dataset = MoodDataset(opt, is_for_train)
+        elif dataset_name=='affwild':
+            from data.AffWildDataset import AffWildDataset
+            dataset = AffWildDataset(opt, is_for_train)
         else:
             raise ValueError("Dataset [%s] not recognized." % dataset_name)
 

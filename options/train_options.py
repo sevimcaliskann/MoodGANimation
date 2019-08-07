@@ -30,5 +30,6 @@ class TrainOptions(BaseOptions):
         self._parser.add_argument('--lambda_mask', type=float, default=0.1, help='lambda mask loss')
         self._parser.add_argument('--lambda_D_gp', type=float, default=10, help='lambda gradient penalty loss')
         self._parser.add_argument('--lambda_mask_smooth', type=float, default=1e-4, help='lambda mask smooth loss')
+        self._parser.add_argument('--annotations_folder', type=str, default='aff wild annotations', help='affwild annotations folder')
 
         self.is_train = True

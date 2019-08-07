@@ -32,13 +32,13 @@ class Train:
         self._writer = SummaryWriter()
 
 
-        self._input_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        self._input_imgs = torch.empty(0,3*self._opt.frames_cnt,self._opt.image_size,self._opt.image_size)
         self._fake_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        self._rec_real_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        #self._rec_real_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
         self._fake_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
         self._fake_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        self._rec_real_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        self._cyc_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        #self._rec_real_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
+        #self._cyc_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
         self._real_conds = list()
         self._desired_conds = list()
 
@@ -160,7 +160,7 @@ class Train:
         #tmp = np.transpose(visuals['7_cyc_img_unmasked'], (2,0,1)).astype(np.float32)
         #torch.cat((self._cyc_imgs_unmasked, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
-        tmp = visuals['8_real_cond']
+        tmp = visuals['8_annotations']
         self._real_conds.append(tmp.tolist())
 
         tmp = visuals['9_desired_cond']
