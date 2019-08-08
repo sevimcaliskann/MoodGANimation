@@ -11,7 +11,8 @@ def read_cv2_img(path):
     :param path: Path to image
     :return: Only returns color images
     '''
-    img = cv2.imread(path, -1)
+    #img = cv2.imread(path, -1)
+    img = io.imread(path)
 
     if img is not None:
         if len(img.shape) != 3:

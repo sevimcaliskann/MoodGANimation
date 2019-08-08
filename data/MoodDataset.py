@@ -35,7 +35,7 @@ class MoodDataset(DatasetBase):
             real_cond = self._get_cond_by_id(sample_id)
 
             if real_img is None:
-                print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id)
+                print 'error reading image %s, skipping sample' % real_img_path
             if real_cond is None:
                 print 'error reading cond %s, skipping sample' % sample_id
 
