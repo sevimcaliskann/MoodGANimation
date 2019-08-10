@@ -32,12 +32,14 @@ class AffWildDataset(DatasetBase):
 
             for frame_id in frame_ids:
                 img, img_path = self._get_img_by_id(frame_id)
+		img = self._transform(Image.fromarray(img))
+		print('img:', img)
+		print('frames:', frames)
 
-                if real_img is None:
+                if img is None:
                     print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id)
                     frames = None
-
-                img = self._transform(Image.fromarray(img))
+		    break
                 frames = img if frames == None else torch.cat([frames, img], dim=0)
 
             target_frame, _ = self._get_img_by_id(cond_id)
@@ -95,15 +97,15 @@ class AffWildDataset(DatasetBase):
 
 
     def _get_annotations_by_id(self, id, cnt, rng):
-        path = os.path.join(self._opt._annotations_dir, id + '.pkl')
-        data = pickle.load(path)
+        path = os.path.join(self._annotations_dir, id + '.pkl')
+        data = pickle.load(open(path, 'rb'))
         start = random.randint(0, len(data) - 1)
         end = start + cnt
         random_frame = min(random.randint(end+1, end+rng), len(data)-1)
 
         frame_ids = data.keys()[start:end]
         annotations = [data[id] for id in frame_ids]
-        cond_id = data.keys()[cond_id]
+        cond_id = data.keys()[random_frame]
         cond = data[cond_id]
         return annotations, frame_ids, cond, cond_id
 
