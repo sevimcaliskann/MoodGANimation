@@ -403,7 +403,7 @@ class GANimation(BaseModel):
         visuals['9_desired_cond'] = self._vis_desired_cond
         # visuals['8_fake_img_mask_sat'] = self._vis_fake_img_mask_saturated
         # visuals['9_rec_real_img_mask_sat'] = self._vis_rec_real_img_mask_saturated
-        visuals['10_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=2)
+        #visuals['10_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=2)
         visuals['11_batch_fake_img'] = np.flip(self._vis_batch_fake_img, axis=2)
         visuals['12_batch_fake_img_mask'] = np.flip(self._vis_batch_fake_img_mask, axis=2)
         # visuals['11_idt_img'] = self._vis_idt_img
