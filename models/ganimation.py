@@ -195,12 +195,13 @@ class GANimation(BaseModel):
             # keep data for visualization
             if keep_data_for_visuals:
                 self._vis_real_img = util.tensor2im(self._input_frames, idx=-1)
+                print('DONE2')
                 self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
                 self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
                 self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
                 self._vis_annotations = self._input_annotations.cpu()[0, ...].numpy()
                 self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
-                self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
+                #self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
                 self._vis_batch_fake_img_mask = util.tensor2maskim(fake_img_mask.data, idx=-1)
                 self._vis_batch_fake_img = util.tensor2im(fake_imgs_masked.data, idx=-1)
 
@@ -283,12 +284,13 @@ class GANimation(BaseModel):
         # keep data for visualization
         if keep_data_for_visuals:
             self._vis_real_img = util.tensor2im(self._input_frames, idx=-1)
+            print('DONE1')
             self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
             self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
             self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
             self._vis_annotations = self._input_annotations.cpu()[0, ...].numpy()
             self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
-            self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
+            #self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
             self._vis_batch_fake_img_mask = util.tensor2maskim(fake_img_mask.data, idx=-1)
             self._vis_batch_fake_img = util.tensor2im(fake_imgs_masked.data, idx=-1)
 
