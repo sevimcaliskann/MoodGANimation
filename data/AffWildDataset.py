@@ -51,7 +51,7 @@ class AffWildDataset(DatasetBase):
         #annotations = torch.squeeze(annotations.view(1, -1))
         annotations = annotations.reshape(annotations.size)
         sample = {'frames': frames,
-                  'annotations': real_cond,
+                  'annotations': annotations,
                   'desired_cond': cond,
                   'cond_id': cond_id,
                   'target_frame':target_frame,
