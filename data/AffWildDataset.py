@@ -34,8 +34,6 @@ class AffWildDataset(DatasetBase):
             for frame_id in frame_ids:
                 img, img_path = self._get_img_by_id(frame_id)
                 img = self._transform(Image.fromarray(img))
-                print('img:', img)
-                print('frames:', frames)
 
                 if img is None:
                     print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id)
@@ -49,7 +47,7 @@ class AffWildDataset(DatasetBase):
         first_frame = frames[0].clone()
         frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
         #annotations = torch.squeeze(annotations.view(1, -1))
-        annotations = annotations.reshape(annotations.size)
+        annotations = torch.from_numpy(annotations.reshape(annotations.size))
         sample = {'frames': frames,
                   'annotations': annotations,
                   'desired_cond': cond,
