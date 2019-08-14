@@ -1,4 +1,5 @@
 import os.path
+import torch
 import torchvision.transforms as transforms
 from data.dataset import DatasetBase
 #from tqdm import tqdm
