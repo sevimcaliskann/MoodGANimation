@@ -48,6 +48,7 @@ class AffWildDataset(DatasetBase):
         frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
         #annotations = torch.squeeze(annotations.view(1, -1))
         annotations = torch.from_numpy(annotations.reshape(annotations.size))
+        cond = torch.from_numpy(cond)
         sample = {'frames': frames,
                   'annotations': annotations,
                   'desired_cond': cond,
@@ -106,7 +107,7 @@ class AffWildDataset(DatasetBase):
         frame_ids = data.keys()[start:end]
         annotations = np.array([data[id] for id in frame_ids])
         cond_id = data.keys()[random_frame]
-        cond = data[cond_id]
+        cond = np.array(data[cond_id])
         return annotations, frame_ids, cond, cond_id
 
 
