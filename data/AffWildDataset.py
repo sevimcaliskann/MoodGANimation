@@ -32,15 +32,15 @@ class AffWildDataset(DatasetBase):
 
             for frame_id in frame_ids:
                 img, img_path = self._get_img_by_id(frame_id)
-		img = self._transform(Image.fromarray(img))
-		print('img:', img)
-		print('frames:', frames)
+                img = self._transform(Image.fromarray(img))
+                print('img:', img)
+                print('frames:', frames)
 
                 if img is None:
                     print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id)
                     frames = None
-		    break
-                frames = img if frames == None else torch.cat([frames, img], dim=0)
+                    break
+                frames = img if frames is None else torch.cat([frames, img], dim=0)
 
             target_frame, _ = self._get_img_by_id(cond_id)
             target_frame = self._transform(Image.fromarray(target_frame))
