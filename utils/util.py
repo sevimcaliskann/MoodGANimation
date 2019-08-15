@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 
 def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
     # select a sample or create grid if img is a batch
-    #print('img shape before reshaping: ', img.shape)
+    print('img shape before reshaping: ', img.shape)
     if len(img.shape) == 4:
         img = img.view(-1, 3, img.size(2), img.size(3))
         nrows = nrows if nrows is not None else int(math.sqrt(img.size(0)))
@@ -18,10 +18,6 @@ def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
     if unnormalize:
         mean = [0.5, 0.5, 0.5]
         std = [0.5, 0.5, 0.5]
-        #transforms.Compose([transforms.Normalize(mean=[0.5, 0.5, 0.5],
-        #                 std=[0.5, 0.5, 0.5])])
-        #print('type mean: ', type(mean))
-        #print('type std: ', type(std))
 
         #for i, m, s in zip(img, mean, std):
         #    i.mul_(s).add_(m)
