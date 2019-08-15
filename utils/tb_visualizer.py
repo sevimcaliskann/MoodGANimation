@@ -28,6 +28,7 @@ class TBVisualizer:
                 tmp = np.transpose(image_numpy, (2,0,1)).astype(np.float32)
                 sum_name = '{}/{}'.format('Train' if is_train else 'Test', label)
                 print('image shape: ', tmp.shape)
+                print('label: ', label)
                 self._writer.add_image(tag = sum_name, img_tensor = torch.from_numpy(tmp)/255, global_step=it)
                 if save_visuals:
                     util.save_image(image_numpy,
