@@ -5,7 +5,7 @@ import os
 import torchvision
 import math
 import cv2
-
+import torchvision.transforms as transforms
 
 def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
     # select a sample or create grid if img is a batch
@@ -19,11 +19,14 @@ def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
     if unnormalize:
         mean = [0.5, 0.5, 0.5]
         std = [0.5, 0.5, 0.5]
-        print('type mean: ', type(mean))
-        print('type std: ', type(std))
+        #transforms.Compose([transforms.Normalize(mean=[0.5, 0.5, 0.5],
+        #                 std=[0.5, 0.5, 0.5])])
+        #print('type mean: ', type(mean))
+        #print('type std: ', type(std))
 
-        for i, m, s in zip(img, mean, std):
-            i.mul_(s).add_(m)
+        #for i, m, s in zip(img, mean, std):
+        #    i.mul_(s).add_(m)
+        img = transforms.Normalize(mean, std)(img)
 
     image_numpy = img.numpy()
     image_numpy_t = np.transpose(image_numpy, (1, 2, 0))
