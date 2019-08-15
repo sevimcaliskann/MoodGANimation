@@ -27,8 +27,10 @@ def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
         #    i.mul_(s).add_(m)
         transform = transforms.Compose([transforms.Normalize(mean=mean, std=std)])
         img = transform(img)
-    img = img.cpu().float
-    image_numpy = img.numpy()
+    #img = img.cpu().float
+    #print('img type: ', type(img))
+    #image_numpy = img.numpy()
+    image_numpy = img.cpu().numpy()
     image_numpy_t = np.transpose(image_numpy, (1, 2, 0))
     image_numpy_t = image_numpy_t*254.0
     return image_numpy_t.astype(imtype)
