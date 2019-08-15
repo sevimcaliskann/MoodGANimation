@@ -195,7 +195,6 @@ class GANimation(BaseModel):
             # keep data for visualization
             if keep_data_for_visuals:
                 self._vis_real_img = util.tensor2im(self._input_frames, idx=-1, nrows=3)
-                print('DONE2')
                 self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
                 self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
                 self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
@@ -284,7 +283,6 @@ class GANimation(BaseModel):
         # keep data for visualization
         if keep_data_for_visuals:
             self._vis_real_img = util.tensor2im(self._input_frames, idx=-1, nrows=3)
-            print('DONE1')
             self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
             self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
             self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
