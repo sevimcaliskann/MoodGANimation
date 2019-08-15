@@ -210,11 +210,11 @@ class GANimation(BaseModel):
         if self._is_train:
             # convert tensor to variables
             self._B = self._input_frames.size(0)
-            self._frames = Variable(self._input_frames)
-            self._annotations = Variable(self._input_annotations)
-            self._desired_cond = Variable(self._input_desired_cond)
-            self._target_frame = Variable(self._input_target_frame)
-            self._first = Variable(self._first_frame)
+            self._frames = Variable(self._input_frames, requires_grad=True)
+            self._annotations = Variable(self._input_annotations, requires_grad=True)
+            self._desired_cond = Variable(self._input_desired_cond, requires_grad=True)
+            self._target_frame = Variable(self._input_target_frame, requires_grad=True)
+            self._first = Variable(self._first_frame, requires_grad=True)
 
             # train D
             loss_D, fake_imgs_masked = self._forward_D()
