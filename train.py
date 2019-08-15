@@ -105,7 +105,7 @@ class Train:
 
             # display visualizer
             if do_visuals:
-                self._display_visualizer_train(self._total_steps)
+                #self._display_visualizer_train(self._total_steps)
                 self._display_visualizer_val(i_epoch, self._total_steps)
                 self._last_display_time = time.time()
 
