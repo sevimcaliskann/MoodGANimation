@@ -26,8 +26,7 @@ def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
 
         #for i, m, s in zip(img, mean, std):
         #    i.mul_(s).add_(m)
-        transform = transforms.Compose([transforms.ToTensor(),
-                    transforms.Normalize(mean=mean, std=std)])
+        transform = transforms.Compose([transforms.Normalize(mean=mean, std=std)])
         img = transform(img)
 
     image_numpy = img.numpy()
