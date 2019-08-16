@@ -58,8 +58,9 @@ class Train:
             self._train_epoch(i_epoch)
 
             # save model
-            print('saving the model at the end of epoch %d, iters %d' % (i_epoch, self._total_steps))
-            self._model.save(i_epoch)
+            if (i_epoch-1)%100==0:
+                print('saving the model at the end of epoch %d, iters %d' % (i_epoch, self._total_steps))
+                self._model.save(i_epoch)
 
             # print epoch info
             time_epoch = time.time() - epoch_start_time
