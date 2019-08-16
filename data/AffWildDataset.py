@@ -30,7 +30,6 @@ class AffWildDataset(DatasetBase):
 
             sample_id = self._ids[index]
             annotations, frame_ids, cond, cond_id = self._get_annotations_by_id(sample_id, self._opt.frames_cnt, self._opt.frames_rng)
-            print('annotations size: ', annotations.shape)
             if len(annotations)<self._opt.frames_cnt:
                 annotations = None
                 continue
@@ -50,7 +49,6 @@ class AffWildDataset(DatasetBase):
 
         first_frame = frames[0].clone()
         frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
-        #annotations = torch.squeeze(annotations.view(1, -1))
         annotations = torch.from_numpy(annotations.reshape(annotations.size))
         cond = torch.from_numpy(cond)
         sample = {'frames': frames,
