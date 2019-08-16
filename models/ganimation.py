@@ -308,7 +308,6 @@ class GANimation(BaseModel):
     def _forward_D(self):
         #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # generate fake images
-        print('annotations size: ', self._annotations.size())
         fake_imgs, fake_img_mask = self._G.forward(self._frames, self._annotations)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
         fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
