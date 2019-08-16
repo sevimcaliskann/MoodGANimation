@@ -47,8 +47,6 @@ class Generator(NetworkBase):
 
     def forward(self, x, c):
         # replicate spatially and concatenate domain information
-        print('x size: ', x.size())
-        print('c size: ', c.size())
         c = c.unsqueeze(2).unsqueeze(3)
         c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
