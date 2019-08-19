@@ -136,6 +136,7 @@ class GANimation(BaseModel):
             real_cond = Variable(self._input_annotations, volatile=True)
             desired_cond = Variable(self._input_desired_cond, volatile=True)
             first_frame = Variable(self._first_frame, volatile=True)
+            target_frame = Variable(self._target_frame, volatile=True)
 
 
             # generate fake images
@@ -162,13 +163,14 @@ class GANimation(BaseModel):
                 im_fake_imgs = util.tensor2im(fake_imgs.data)
                 #im_fake_img_mask_norm = util.tensor2maskim(fake_img_mask_norm.data)
                 im_fake_imgs_masked = util.tensor2im(fake_imgs_masked.data)
+                im_target_img = util.tensor2im(target_frame.data)
                 #im_rec_imgs = util.tensor2im(rec_real_img_rgb.data)
                 #im_rec_img_mask_norm = util.tensor2maskim(rec_real_img_mask.data)
                 #im_rec_imgs_masked = util.tensor2im(rec_real_imgs.data)
                 #im_concat_img = np.concatenate([im_real_img, im_fake_imgs_masked, im_fake_img_mask_norm, im_fake_imgs,
                 #                                im_rec_imgs, im_rec_img_mask_norm, im_rec_imgs_masked],
                 #                               1)
-                im_concat_img = np.concatenate([im_real_img, im_fake_imgs_masked, im_fake_imgs], 1)
+                im_concat_img = np.concatenate([im_real_img, im_fake_imgs_masked, im_fake_imgs, im_target_img], 1)
 
                 im_real_img_batch = util.tensor2im(real_img.data, idx=-1, nrows=1)
                 im_fake_imgs_batch = util.tensor2im(fake_imgs.data, idx=-1, nrows=1)
@@ -180,6 +182,7 @@ class GANimation(BaseModel):
                                     ('fake_imgs', im_fake_imgs),
                                     #('fake_img_mask', im_fake_img_mask_norm),
                                     ('fake_imgs_masked', im_fake_imgs_masked),
+                                    ('target_img', im_target_img),
                                     ('concat', im_concat_img),
                                     ('real_img_batch', im_real_img_batch),
                                     ('fake_imgs_batch', im_fake_imgs_batch),
@@ -198,6 +201,7 @@ class GANimation(BaseModel):
                 self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
                 self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
                 self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
+                self._vis_target_img = util.tensor2im(target_frame.data)
                 self._vis_annotations = self._input_annotations.cpu()[0, ...].numpy()
                 self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
                 #self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
@@ -286,6 +290,7 @@ class GANimation(BaseModel):
             self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
             self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
             self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
+            self._vis_target_img = util.tensor2im(self._target_frame)
             self._vis_annotations = self._input_annotations.cpu()[0, ...].numpy()
             self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
             #self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
@@ -395,6 +400,7 @@ class GANimation(BaseModel):
         #visuals['3_rec_real_img'] = np.flip(self._vis_rec_real_img, axis=2)
         visuals['4_fake_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
         visuals['5_fake_img_mask'] = np.flip(self._vis_fake_img_mask, axis=2)
+        visuals['6_target_img'] = np.flip(self._vis_target_img, axis=2)
         #visuals['6_rec_real_img_mask'] = np.flip(self._vis_rec_real_img_mask, axis=2)
         #visuals['7_cyc_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
         visuals['8_annotations'] = self._vis_annotations
