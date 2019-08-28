@@ -236,14 +236,18 @@ class GANimation(BaseModel):
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
 
         # D(G(Ic1, c2)*M) masked
+        start = time.time()
         d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
+        print('discriminator forward pass, time passed: ', time.time()-start)
 
+        start = time.time()
         self._loss_g_masked_fake = self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
+        print('adv loss time passed: ', time.time()-start)
         start = time.time()
         #self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
         self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond        # G(G(Ic1,c2), c1)
         #self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) * self._opt.lambda_D_cond
-        print('time passed: ', time.time()-start)
+        print('cond time passed: ', time.time()-start)
 
         rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_cond)
         rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
