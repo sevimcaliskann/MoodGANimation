@@ -93,7 +93,6 @@ class Train:
             self._model.set_input(train_batch)
             train_generator = ((i_train_batch+1) % self._opt.train_G_every_n_iterations == 0) or do_visuals
             self._model.optimize_parameters(keep_data_for_visuals=do_visuals, train_generator=train_generator)
-            print('done one iteration, time elapsed: ', time.time()-iter_start_time)
 
             # update epoch info
             self._total_steps += self._opt.batch_size

@@ -208,20 +208,15 @@ class GANimation(BaseModel):
             self._desired_cond = Variable(self._input_desired_cond)
 
             # train D
-            start = time.time()
             loss_D, fake_imgs_masked = self._forward_D()
             self._optimizer_D.zero_grad()
             loss_D.backward()
             self._optimizer_D.step()
-            print('discriminator is optimized, spent time: ', time.time() - start)
-            start = time.time()
 
             loss_D_gp= self._gradinet_penalty_D(fake_imgs_masked)
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
-            print('discriminator gradient penalty is checked, spent time: ', time.time() - start)
-            start = time.time()
 
             # train G
             if train_generator:
@@ -229,28 +224,35 @@ class GANimation(BaseModel):
                 self._optimizer_G.zero_grad()
                 loss_G.backward()
                 self._optimizer_G.step()
-                print('generator is put into training, lets see what will come, time spent: ', time.time()-start)
 
     def _forward_G(self, keep_data_for_visuals):
 
-        adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
+        #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         #print('adaptive weight: ', adaptive)
 
         # generate fake images
+        start = time.time()
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
+        print('fake img generated, spent time: ', time.time()-start)
+        start = time.time()
 
         # D(G(Ic1, c2)*M) masked
         d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
+        print('discrimator judged fake images, spent time: ', time.time()-start)
+        start = time.time()
 
-        self._loss_g_masked_fake = self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob*adaptive
+        self._loss_g_masked_fake = self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
         #self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
         self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond        # G(G(Ic1,c2), c1)
+        print('losses are calculated, spent time: ', time.time()-start)
+        start = time.time()
         rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_cond)
         rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
         rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
-
+        print('reconstructed image, spent time: ', time.time()-start)
+        start =time.time()
         #d_cyc_desired_img_masked_prob, d_cyc_desired_img_masked_cond = self._D.forward(rec_real_imgs)
         #self._loss_g_cyc_cond = self._criterion_D_cond(d_cyc_desired_img_masked_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
 
@@ -269,6 +271,8 @@ class GANimation(BaseModel):
 
         self._loss_g_mask_1_smooth = self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
         self._loss_g_mask_2_smooth = self._compute_loss_smooth(rec_real_img_mask) * self._opt.lambda_mask_smooth
+        print('losses are calculated, spent time: ', time.time()-start)
+        start = time.time()
 
         # keep data for visualization
         if keep_data_for_visuals:
@@ -287,6 +291,7 @@ class GANimation(BaseModel):
             self._vis_batch_rec_real_img = util.tensor2im(rec_real_imgs.data, idx=-1)
 
         # combine losses
+        print('in the end after restoring logs, spending time: ', time.time()-start)
         return self._loss_g_masked_fake + self._loss_g_masked_cond + \
                self._loss_g_cyc + \
                self._loss_g_mask_1 + self._loss_g_mask_2 + \
