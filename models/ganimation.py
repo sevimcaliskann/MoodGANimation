@@ -7,6 +7,7 @@ from .models import BaseModel
 from networks.networks import NetworksFactory
 import os
 import numpy as np
+import time
 
 
 class GANimation(BaseModel):
@@ -207,15 +208,20 @@ class GANimation(BaseModel):
             self._desired_cond = Variable(self._input_desired_cond)
 
             # train D
+            start = time.time()
             loss_D, fake_imgs_masked = self._forward_D()
             self._optimizer_D.zero_grad()
             loss_D.backward()
             self._optimizer_D.step()
+            print('discriminator is optimized, spent time: ', time.time() - start)
+            start = time.time()
 
             loss_D_gp= self._gradinet_penalty_D(fake_imgs_masked)
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
+            print('discriminator gradient penalty is checked, spent time: ', time.time() - start)
+            start = time.time()
 
             # train G
             if train_generator:
@@ -223,6 +229,7 @@ class GANimation(BaseModel):
                 self._optimizer_G.zero_grad()
                 loss_G.backward()
                 self._optimizer_G.step()
+                print('generator is put into training, lets see what will come, time spent: ', time.time()-start)
 
     def _forward_G(self, keep_data_for_visuals):
 
