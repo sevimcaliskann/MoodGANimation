@@ -236,16 +236,12 @@ class GANimation(BaseModel):
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
 
         # D(G(Ic1, c2)*M) masked
-        start = time.time()
         d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
-        print('discriminator forward pass, time passed: ', time.time()-start)
 
-        start = time.time()
         self._loss_g_masked_fake = self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
-        print('adv loss time passed: ', time.time()-start)
         start = time.time()
         #self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
-        self._loss_g_masked_cond = self._criterion_D_cond(self._desired_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond        # G(G(Ic1,c2), c1)
+        self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond        # G(G(Ic1,c2), c1)
         #self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) * self._opt.lambda_D_cond
         print('cond time passed: ', time.time()-start)
 
@@ -295,20 +291,20 @@ class GANimation(BaseModel):
 
     def _forward_D(self):
         # generate fake images
-        adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
+        #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
         fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
         fake_imgs_masked = fake_img_mask * self._real_img + (1 - fake_img_mask) * fake_imgs
 
         # D(real_I)
         d_real_img_prob, d_real_img_cond = self._D.forward(self._real_img)
-        self._loss_d_real = self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob*adaptive
+        self._loss_d_real = self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
         #self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
         self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
         # D(fake_I)
         d_fake_desired_img_prob, _ = self._D.forward(fake_imgs_masked.detach())
         #self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
-        self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob*adaptive
+        self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
 
         # combine losses
         #return self._loss_d_real  + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
