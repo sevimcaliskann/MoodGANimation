@@ -74,7 +74,7 @@ class GANimation(BaseModel):
         # define loss functions
         self._criterion_cycle = torch.nn.L1Loss().cuda()
         self._robust_cycle = torch.nn.SmoothL1Loss().cuda()
-        self._criterion_D_cond = torch.nn.MSELoss().cuda()
+        self._criterion_D_cond = torch.nn.L1Loss().cuda()
 
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
