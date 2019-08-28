@@ -4,6 +4,7 @@ matplotlib.use('pdf')
 from matplotlib import pyplot as plt
 import numpy as np
 from skimage import io
+import time
 
 def read_cv2_img(path):
     '''
@@ -11,8 +12,11 @@ def read_cv2_img(path):
     :param path: Path to image
     :return: Only returns color images
     '''
-    #img = cv2.imread(path, -1)
-    img = io.imread(path)
+    start = time.time()
+    img = cv2.imread(path, -1)
+    elapsed = time.time() - start
+    print('time passed: ', elapsed)
+    #img = io.imread(path)
 
     if img is not None:
         if len(img.shape) != 3:
