@@ -300,7 +300,9 @@ class GANimation(BaseModel):
         d_real_img_prob, d_real_img_cond = self._D.forward(self._real_img)
         self._loss_d_real = self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
         #self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
+        start = time.time()
         self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
+        print('disc real cond time spent: ', time.time()-start)
         # D(fake_I)
         d_fake_desired_img_prob, _ = self._D.forward(fake_imgs_masked.detach())
         #self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
