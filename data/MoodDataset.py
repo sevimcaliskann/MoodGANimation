@@ -41,7 +41,6 @@ class MoodDataset(DatasetBase):
 
 
         desired_cond = self._generate_random_cond(real_cond)
-        print('Reading done before sending to the batch')
 
         #if index % 4
         #if index%4 ==0:
