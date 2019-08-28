@@ -17,6 +17,8 @@ def read_cv2_img(path):
     elapsed = time.time() - start
     print('time passed: ', elapsed)
     #img = io.imread(path)
+    if img is None:
+        print('img is none!')
 
     if img is not None:
         if len(img.shape) != 3:
