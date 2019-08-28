@@ -245,7 +245,7 @@ class GANimation(BaseModel):
         print('adv loss time passed: ', time.time()-start)
         start = time.time()
         #self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
-        self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, d_fake_desired_img_masked_cond) / self._B * self._opt.lambda_D_cond        # G(G(Ic1,c2), c1)
+        self._loss_g_masked_cond = self._criterion_D_cond(self._desired_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond        # G(G(Ic1,c2), c1)
         #self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) * self._opt.lambda_D_cond
         print('cond time passed: ', time.time()-start)
 
