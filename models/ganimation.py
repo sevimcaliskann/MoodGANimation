@@ -316,16 +316,17 @@ class GANimation(BaseModel):
 
             if fake_imgs_masked is None:
                 fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
-                print('fake imgs size: ', fake_imgs.size())
-                print('mask size: ', fake_img_mask.size())
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
                 fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
                 print('fake_imgs_masked size: ', fake_imgs_masked.size())
             else:
+                print('after first, fake_imgs_masked size: ', fake_imgs_masked.size())
                 fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
+                print('fake imgs size: ', fake_imgs.size())
+                print('mask size: ', fake_img_mask.size())
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
                 fake_imgs_masked = fake_img_mask * fake_imgs_masked + (1 - fake_img_mask) * fake_imgs
-                print('after first, fake_imgs_masked size: ', fake_imgs_masked.size())
+
 
 
             d_real_img_prob, d_real_img_cond = self._D.forward(real_img)
