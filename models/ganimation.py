@@ -231,7 +231,10 @@ class GANimation(BaseModel):
 
             loss_D_gp = 0
             for i in range(fake_vids_masked.size(1)):
-                loss_D_gp += self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :])
+                if i==0:
+                    loss_D_gp += self._gradinet_penalty_D(self._first, fake_vids_masked[:, i, :, :, :])
+                else:
+                    loss_D_gp += self._gradinet_penalty_D(fake_vids_masked[:, i-1, :, :, :], fake_vids_masked[:, i, :, :, :])
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
@@ -324,8 +327,6 @@ class GANimation(BaseModel):
                 fake_imgs_masked = fake_img_mask * fake_imgs_masked + (1 - fake_img_mask) * fake_imgs
 
 
-            print('real img size: ', real_img.size())
-            print('real_cond size: ', real_cond.size())
             d_real_img_prob, d_real_img_cond = self._D.forward(real_img)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
             self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, real_cond) / self._B * self._opt.lambda_D_cond
@@ -334,17 +335,16 @@ class GANimation(BaseModel):
             self._loss_d_fake += self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
             fake_videos_masked.append(fake_imgs_masked)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
-        print('fake_videos_masked size: ', fake_videos_masked.size())
 
 
         return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_videos_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
-    def _gradinet_penalty_D(self, fake_imgs_masked):
+    def _gradinet_penalty_D(self, prev, fake_imgs_masked):
         #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # interpolate sample
         alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._first_frame)
-        interpolated = Variable(alpha * self._target_frame.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
+        interpolated = Variable(alpha * prev.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
         interpolated_prob, _ = self._D(interpolated)
 
         # compute gradients
