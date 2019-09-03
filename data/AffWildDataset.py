@@ -44,7 +44,7 @@ class AffWildDataset(DatasetBase):
                 else:
                     frame_list.append(img)
 
-            if len(frames_list)>0:
+            if len(frame_list)>0:
                 frames = torch.transpose(torch.stack(frame_list), 0, 1)
 
 
