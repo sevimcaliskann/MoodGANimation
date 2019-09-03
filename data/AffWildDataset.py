@@ -45,7 +45,7 @@ class AffWildDataset(DatasetBase):
                     frame_list.append(img)
 
             if len(frame_list)>0:
-                frames = torch.transpose(torch.stack(frame_list), 0, 1)
+                frames = torch.stack(frame_list)
 
 
         first_frame = frame_list[0].clone()
