@@ -34,7 +34,9 @@ class TBVisualizer:
                                 os.path.join(self._opt.checkpoints_dir, self._opt.name,
                                              'event_imgs', sum_name, '%08d.png' % it))
             elif len(image_numpy.shape)==4:
-                tmp = np.transpose(image_numpy, (0, 3, 1, 2)).astype(np.float32)
+                print('image_numpy shape:', image_numpy.shape)
+                tmp = np.expand_dims(np.transpose(image_numpy, (3, 0, 1, 2)).astype(np.float32), axis=0)
+                print('tmp shape: ', tmp.shape)
                 self._writer.add_video(tag = sum_name, vid_tensor = torch.from_numpy(tmp)/255, global_step=it)
                 if save_visuals:
                     util.save_video(image_numpy,
