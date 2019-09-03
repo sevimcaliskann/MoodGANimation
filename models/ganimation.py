@@ -105,6 +105,7 @@ class GANimation(BaseModel):
     def set_input(self, input):
         self._input_frames.resize_(input['frames'].size()).copy_(input['frames'])
         self._input_annotations.resize_(input['annotations'].size()).copy_(input['annotations'])
+        print('annoataions size check: ', input['annotations'].size())
         #self._input_desired_cond.resize_(input['desired_cond'].size()).copy_(input['desired_cond'])
         #self._input_target_frame.resize_(input['target_frame'].size()).copy_(input['target_frame'])
         self._first_frame.resize_(input['first_frame'].size()).copy_(input['first_frame'])

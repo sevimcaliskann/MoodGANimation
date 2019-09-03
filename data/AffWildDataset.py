@@ -52,10 +52,8 @@ class AffWildDataset(DatasetBase):
         first_ann = np.copy(annotations[0])
 
         #frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
-        print('before shape: ', annotations.shape)
         annotations = torch.from_numpy(annotations.reshape((-1, self._opt.cond_nc)))
-        print('after shape: ', annotations.size())
-        first_ann = torch.from_numpy(first_ann.reshape(first_ann.size))
+        first_ann = torch.from_numpy(first_ann.reshape((-1, self._opt.cond_nc)))
         sample = {'frames': frames,
                   'annotations': annotations,
                   'first_frame':first_frame,
