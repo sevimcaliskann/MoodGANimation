@@ -32,7 +32,7 @@ def tensor2im(img, imtype=np.uint8, unnormalize=True, idx=0, nrows=None):
     return image_numpy_t.astype(imtype)
 
 def tensor2vid(vid, vidtype = np.uint8, unnormalize=True, idx=0, nrows = None):
-    nrows = nrows if nrows is not None else int(math.sqrt(img.size(0)))
+    nrows = nrows if nrows is not None else int(math.sqrt(vid.size(0)))
     if idx>=0:
         vid = vid[idx]
     else:
