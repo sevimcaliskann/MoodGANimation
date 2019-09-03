@@ -22,6 +22,7 @@ class AffWildDataset(DatasetBase):
         assert (index < self._dataset_size)
         frames = None
         annotations = None
+        frame_list = list()
         while frames is None or annotations is None:
             if not self._opt.serial_batches:
                 index = random.randint(0, self._dataset_size - 1)
@@ -38,15 +39,19 @@ class AffWildDataset(DatasetBase):
 
                 if img is None:
                     print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id)
-                    frames = None
+                    frame_list.clear()
                     break
-                frames = img if frames is None else torch.cat([frames, img], dim=0)
+                else:
+                    frame_list.append(img)
+
+            if len(frames_list)>0:
+                frames = torch.transpose(torch.stack(frame_list), 0, 1)
 
 
-        first_frame = frames[0].clone()
+        first_frame = frame_list[0].clone()
         first_ann = np.copy(annotations[0])
 
-        frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
+        #frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
         annotations = torch.from_numpy(annotations.reshape(annotations.size))
         first_ann = torch.from_numpy(first_ann.reshape(first_ann.size))
         sample = {'frames': frames,
