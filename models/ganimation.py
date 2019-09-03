@@ -245,6 +245,7 @@ class GANimation(BaseModel):
 
     def _forward_G(self, keep_data_for_visuals):
         # generate fake images
+        print('first frame size: ', self._first.size())
         self._loss_g_masked_fake = 0
         self._loss_g_masked_cond = 0
         self._loss_g_cyc = 0
@@ -305,6 +306,7 @@ class GANimation(BaseModel):
 
 
     def _forward_D(self):
+        print('first frame size: ', self._first.size())
         self._loss_d_real = 0
         self._loss_d_cond = 0
         self._loss_d_fake = 0
