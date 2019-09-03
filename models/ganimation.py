@@ -325,14 +325,16 @@ class GANimation(BaseModel):
 
 
             print('real img size: ', real_img.size())
+            print('real_cond size: ', real_cond.size())
             d_real_img_prob, d_real_img_cond = self._D.forward(real_img)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
-            self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
+            self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, real_cond) / self._B * self._opt.lambda_D_cond
             # D(fake_I)
             d_fake_desired_img_prob, _ = self._D.forward(fake_imgs_masked.detach())
             self._loss_d_fake += self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
             fake_videos_masked.append(fake_imgs_masked)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
+        print('fake_videos_masked size: ', fake_videos_masked.size())
 
 
         return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_videos_masked
