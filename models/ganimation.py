@@ -206,10 +206,10 @@ class GANimation(BaseModel):
                 self._vis_real_img = util.tensor2vid(self._input_frames[:, 1:, :, :, :])
                 self._vis_fake_img_unmasked = util.tensor2vid(fake_videos.data)
                 self._vis_fake_img = util.tensor2vid(fake_videos_masked.data)
-                self._vis_fake_img_mask = util.tensor2maskvid(vid_mask.data)
+                self._vis_fake_img_mask = util.tensor2maskvid(fake_mask_videos.data)
                 self._vis_annotations = self._input_annotations.cpu()[0, ...].numpy()
                 self._vis_batch_real_img = util.tensor2vid(self._input_frames, idx=-1)
-                self._vis_batch_fake_img_mask = util.tensor2maskvid(vid_mask.data, idx=-1)
+                self._vis_batch_fake_img_mask = util.tensor2maskvid(fake_mask_videos.data, idx=-1)
                 self._vis_batch_fake_img = util.tensor2vid(fake_videos_masked.data, idx=-1)
 
             return imgs
