@@ -54,7 +54,7 @@ def tensor2vid(vid, vidtype = np.uint8, unnormalize=True, idx=0, nrows = None):
     video_numpy = vid.cpu().numpy()
     video_numpy_t = np.transpose(video_numpy, (0, 2, 3, 1))
     video_numpy_t = video_numpy_t*254.0
-    return video_numpy_t.astype(imtype)
+    return video_numpy_t.astype(vidtype)
 
 def tensor2maskim(mask, imtype=np.uint8, idx=0, nrows=1):
     im = tensor2im(mask, imtype=imtype, idx=idx, unnormalize=False, nrows=nrows)
@@ -62,8 +62,8 @@ def tensor2maskim(mask, imtype=np.uint8, idx=0, nrows=1):
         im = np.repeat(im, 3, axis=-1)
     return im
 
-def tensor2maskvid(mask, imtype=np.uint8, idx=0, nrows=1):
-    vid = tensor2vid(mask, imtype=imtype, idx=idx, unnormalize=False, nrows=nrows)
+def tensor2maskvid(mask, vidtype=np.uint8, idx=0, nrows=1):
+    vid = tensor2vid(mask, vidtype=vidtype, idx=idx, unnormalize=False, nrows=nrows)
     if vid.shape[3] == 1:
         vid = np.repeat(vid, 3, axis=-1)
     return vid
