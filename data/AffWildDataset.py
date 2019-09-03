@@ -22,14 +22,12 @@ class AffWildDataset(DatasetBase):
         assert (index < self._dataset_size)
         frames = None
         annotations = None
-        cond = None
-        target_frame = None
-        while frames is None or annotations is None or cond is None or target_frame is None:
+        while frames is None or annotations is None:
             if not self._opt.serial_batches:
                 index = random.randint(0, self._dataset_size - 1)
 
             sample_id = self._ids[index]
-            annotations, frame_ids, cond, cond_id = self._get_annotations_by_id(sample_id, self._opt.frames_cnt, self._opt.frames_rng)
+            annotations, frame_ids = self._get_annotations_by_id(sample_id, self._opt.frames_cnt)
             if len(annotations)<self._opt.frames_cnt:
                 annotations = None
                 continue
@@ -44,19 +42,17 @@ class AffWildDataset(DatasetBase):
                     break
                 frames = img if frames is None else torch.cat([frames, img], dim=0)
 
-            target_frame, _ = self._get_img_by_id(cond_id)
-            target_frame = self._transform(Image.fromarray(target_frame))
 
         first_frame = frames[0].clone()
+        first_ann = np.copy(annotations[0])
+
         frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
         annotations = torch.from_numpy(annotations.reshape(annotations.size))
-        cond = torch.from_numpy(cond)
+        first_ann = torch.from_numpy(first_ann.reshape(first_ann.size))
         sample = {'frames': frames,
                   'annotations': annotations,
-                  'desired_cond': cond,
-                  'cond_id': cond_id,
-                  'target_frame':target_frame,
-                  'first_frame':first_frame
+                  'first_frame':first_frame,
+                  'first_ann':first_ann
                   }
         return sample
 
@@ -99,18 +95,15 @@ class AffWildDataset(DatasetBase):
         self._transform = transforms.Compose(transform_list)
 
 
-    def _get_annotations_by_id(self, id, cnt, rng):
+    def _get_annotations_by_id(self, id, cnt):
         path = os.path.join(self._annotations_dir, id + '.pkl')
         data = pickle.load(open(path, 'rb'))
         start = random.randint(0, len(data) - 1)
         end = start + cnt
-        random_frame = min(random.randint(end+1, end+rng), len(data)-1)
 
         frame_ids = data.keys()[start:end]
         annotations = np.array([data[id] for id in frame_ids])
-        cond_id = data.keys()[random_frame]
-        cond = np.array(data[cond_id])
-        return annotations, frame_ids, cond, cond_id
+        return annotations, frame_ids
 
 
 

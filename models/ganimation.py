@@ -47,7 +47,7 @@ class GANimation(BaseModel):
         self._D.cuda()
 
     def _create_generator(self):
-        return NetworksFactory.get_by_name('generator_wasserstein_gan', c_dim=(self._opt.cond_nc+3)*self._opt.frames_cnt)
+        return NetworksFactory.get_by_name('generator_wasserstein_gan', c_dim=self._opt.cond_nc+3)
 
     def _create_discriminator(self):
         return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.cond_nc)
@@ -63,12 +63,13 @@ class GANimation(BaseModel):
                                              betas=[self._opt.D_adam_b1, self._opt.D_adam_b2])
 
     def _init_prefetch_inputs(self):
-        self._input_frames = self._Tensor(self._opt.batch_size, 3*self._opt.frames_cnt, self._opt.image_size, self._opt.image_size)
-        self._input_annotations = self._Tensor(self._opt.batch_size, self._opt.cond_nc*self._opt.frames_cnt)
-        self._input_desired_cond = self._Tensor(self._opt.batch_size, self._opt.cond_nc)
-        self._input_cond_id = None
-        self._input_target_frame = self._Tensor(self._opt.batch_size, 3, self._opt.image_size, self._opt.image_size)
+        self._input_frames = self._Tensor(self._opt.batch_size, self._opt.frames_cnt, 3, self._opt.image_size, self._opt.image_size)
+        self._input_annotations = self._Tensor(self._opt.batch_size, self._opt.frames_cnt, self._opt.cond_nc)
+        #self._input_desired_cond = self._Tensor(self._opt.batch_size, self._opt.cond_nc)
+        #self._input_cond_id = None
+        #self._input_target_frame = self._Tensor(self._opt.batch_size, 3, self._opt.image_size, self._opt.image_size)
         self._first_frame = self._Tensor(self._opt.batch_size, 3, self._opt.image_size, self._opt.image_size)
+        self._first_ann = self._Tensor(self._opt.batch_size, 1, self._opt.cond_nc)
         #self._input_real_cond_path = None
 
     def _init_losses(self):
@@ -83,17 +84,17 @@ class GANimation(BaseModel):
         self._loss_g_cyc = Variable(self._Tensor([0]))
         self._loss_g_mask_1 = Variable(self._Tensor([0]))
         self._loss_g_mask_2 = Variable(self._Tensor([0]))
-        self._loss_g_idt = Variable(self._Tensor([0]))
+        #self._loss_g_idt = Variable(self._Tensor([0]))
         self._loss_g_masked_fake = Variable(self._Tensor([0]))
         self._loss_g_masked_cond = Variable(self._Tensor([0]))
         #self._loss_g_cyc_cond = Variable(self._Tensor([0]))
         self._loss_g_mask_1_smooth = Variable(self._Tensor([0]))
         self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
-        self._loss_inv_mask = Variable(self._Tensor([0]))
-        self._loss_color_maps = Variable(self._Tensor([0]))
-        self._loss_rec_real_img_rgb = Variable(self._Tensor([0]))
-        self._loss_g_fake_imgs_smooth = Variable(self._Tensor([0]))
-        self._loss_g_unmasked_rgb = Variable(self._Tensor([0]))
+        #self._loss_inv_mask = Variable(self._Tensor([0]))
+        #self._loss_color_maps = Variable(self._Tensor([0]))
+        #self._loss_rec_real_img_rgb = Variable(self._Tensor([0]))
+        #self._loss_g_fake_imgs_smooth = Variable(self._Tensor([0]))
+        #self._loss_g_unmasked_rgb = Variable(self._Tensor([0]))
 
         # init losses D
         self._loss_d_real = Variable(self._Tensor([0]))
@@ -104,17 +105,19 @@ class GANimation(BaseModel):
     def set_input(self, input):
         self._input_frames.resize_(input['frames'].size()).copy_(input['frames'])
         self._input_annotations.resize_(input['annotations'].size()).copy_(input['annotations'])
-        self._input_desired_cond.resize_(input['desired_cond'].size()).copy_(input['desired_cond'])
-        self._input_target_frame.resize_(input['target_frame'].size()).copy_(input['target_frame'])
+        #self._input_desired_cond.resize_(input['desired_cond'].size()).copy_(input['desired_cond'])
+        #self._input_target_frame.resize_(input['target_frame'].size()).copy_(input['target_frame'])
         self._first_frame.resize_(input['first_frame'].size()).copy_(input['first_frame'])
-        self._input_cond_id = input['cond_id']
+        self._first_ann.resize_(input['first_ann'].size()).copy_(input['first_ann'])
+        #self._input_cond_id = input['cond_id']
 
         if len(self._gpu_ids) > 0:
             self._input_frames = self._input_frames.cuda(self._gpu_ids[0], async=True)
             self._input_annotations = self._input_annotations.cuda(self._gpu_ids[0], async=True)
-            self._input_target_frame = self._input_target_frame.cuda(self._gpu_ids[0], async=True)
+            #self._input_target_frame = self._input_target_frame.cuda(self._gpu_ids[0], async=True)
             self._first_frame = self._first_frame.cuda(self._gpu_ids[0], async=True)
-            self._input_desired_cond = self._input_desired_cond.cuda(self._gpu_ids[0], async=True)
+            self._first_ann = self._first_ann.cuda(self._gpu_ids[0], async=True)
+            #self._input_desired_cond = self._input_desired_cond.cuda(self._gpu_ids[0], async=True)
 
     def set_train(self):
         self._G.train()
@@ -131,84 +134,85 @@ class GANimation(BaseModel):
 
     def forward(self, keep_data_for_visuals=False, return_estimates=False):
         if not self._is_train:
-            # convert tensor to variables
-            real_img = Variable(self._input_frames, volatile=True)
-            real_cond = Variable(self._input_annotations, volatile=True)
-            desired_cond = Variable(self._input_desired_cond, volatile=True)
             first_frame = Variable(self._first_frame, volatile=True)
-            target_frame = Variable(self._target_frame, volatile=True)
+            fake_imgs_masked = None
+            fake_videos = list()
+            fake_mask_videos = list()
+            fake_videos_masked = list()
+            for idx in range(1, self._opt.frames_cnt):
+                real_cond = Variable(self._input_annotations[:, idx, :], volatile=True)
 
+                if fake_imgs_masked is None:
+                    fake_imgs, fake_img_mask = self._G.forward(first_frame, real_cond)
+                    fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                    fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
+                else:
+                    fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
+                    fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                    fake_imgs_masked = fake_img_mask * fake_imgs_masked + (1 - fake_img_mask) * fake_imgs
+                fake_videos_masked.append(fake_imgs_masked)
+                fake_mask_videos.append(fake_img_mask)
+                fake_videos.append(fake_imgs)
 
-            # generate fake images
-            fake_imgs, fake_img_mask = self._G.forward(real_img, real_cond)
-
-            fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-            fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
-
-            #rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, real_cond)
-            #rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
-            #rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
+            fake_videos = torch.transpose(torch.stack(fake_videos), 0, 1)
+            fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
+            fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
 
             imgs = None
             data = None
             if return_estimates:
-                # normalize mask for better visualization
-                fake_img_mask_max = fake_imgs_masked.view(fake_img_mask.size(0), -1).max(-1)[0]
-                fake_img_mask_max = torch.unsqueeze(torch.unsqueeze(torch.unsqueeze(fake_img_mask_max, -1), -1), -1)
-                # fake_img_mask_norm = fake_img_mask / fake_img_mask_max
-                fake_img_mask_norm = fake_img_mask
-
                 # generate images
-                im_real_img = util.tensor2im(real_img.data, idx=-1)
-                im_fake_imgs = util.tensor2im(fake_imgs.data)
+                vid_real_img = util.tensor2vid(self._input_frames[:, 1:, :, :, :])
+                vid_fake_imgs = util.tensor2vid(fake_videos.data)
                 #im_fake_img_mask_norm = util.tensor2maskim(fake_img_mask_norm.data)
-                im_fake_imgs_masked = util.tensor2im(fake_imgs_masked.data)
-                im_target_img = util.tensor2im(target_frame.data)
+                vid_mask = util.tensor2maskvid(fake_mask_videos.data)
+                vid_fake_masked = util.tensor2vid(fake_videos_masked.data)
+                #im_target_img = util.tensor2im(target_frame.data)
                 #im_rec_imgs = util.tensor2im(rec_real_img_rgb.data)
                 #im_rec_img_mask_norm = util.tensor2maskim(rec_real_img_mask.data)
                 #im_rec_imgs_masked = util.tensor2im(rec_real_imgs.data)
                 #im_concat_img = np.concatenate([im_real_img, im_fake_imgs_masked, im_fake_img_mask_norm, im_fake_imgs,
                 #                                im_rec_imgs, im_rec_img_mask_norm, im_rec_imgs_masked],
                 #                               1)
-                im_concat_img = np.concatenate([im_real_img, im_fake_imgs_masked, im_fake_imgs, im_target_img], 1)
+                vid_concat_img = np.concatenate([vid_real_img, vid_fake_masked, vid_fake_imgs, vid_mask], 2)
 
-                im_real_img_batch = util.tensor2im(real_img.data, idx=-1, nrows=1)
-                im_fake_imgs_batch = util.tensor2im(fake_imgs.data, idx=-1, nrows=1)
+                vid_real_img_batch = util.tensor2vid(self._input_frames[:, 1:, :, :, :], idx=-1)
+                vid_fake_imgs_batch = util.tensor2vid(fake_videos.data, idx=-1)
                 #im_fake_img_mask_norm_batch = util.tensor2maskim(fake_img_mask_norm.data, idx=-1, nrows=1)
-                im_fake_imgs_masked_batch = util.tensor2im(fake_imgs_masked.data, idx=-1, nrows=1)
-                im_concat_img_batch = np.concatenate([im_real_img_batch, im_fake_imgs_masked_batch, im_fake_imgs_batch], 1)
+                vid_fake_masked_batch = util.tensor2vid(fake_videos_masked.data, idx=-1)
+                vid_mask_batch = util.tensor2vid(fake_mask_videos.data, idx=-1)
+                vid_concat_img_batch = np.concatenate([vid_real_img_batch, vid_fake_masked_batch, vid_fake_imgs_batch, vid_mask_batch], 2)
 
-                imgs = OrderedDict([('real_img', im_real_img),
-                                    ('fake_imgs', im_fake_imgs),
+                imgs = OrderedDict([('real_img', vid_real_img),
+                                    ('fake_imgs', vid_fake_imgs),
                                     #('fake_img_mask', im_fake_img_mask_norm),
-                                    ('fake_imgs_masked', im_fake_imgs_masked),
-                                    ('target_img', im_target_img),
-                                    ('concat', im_concat_img),
-                                    ('real_img_batch', im_real_img_batch),
-                                    ('fake_imgs_batch', im_fake_imgs_batch),
-                                    #('fake_img_mask_batch', im_fake_img_mask_norm_batch),
-                                    ('fake_imgs_masked_batch', im_fake_imgs_masked_batch),
-                                    ('concat_batch', im_concat_img_batch),
+                                    ('fake_imgs_masked', vid_fake_masked),
+                                    ('img_mask', vid_mask),
+                                    ('concat', vid_concat_img),
+                                    ('real_img_batch', vid_real_img_batch),
+                                    ('fake_imgs_batch', vid_fake_imgs_batch),
+                                    ('fake_img_mask_batch', vid_mask_batch),
+                                    ('fake_imgs_masked_batch', vid_fake_masked_batch),
+                                    ('concat_batch', vid_concat_img_batch),
                                     ])
 
-                data = OrderedDict([('real_path', self._input_cond_id),
-                                    ('desired_cond', desired_cond.data[0, ...].cpu().numpy().astype('str'))
-                                    ])
+                #data = OrderedDict([('real_path', self._input_cond_id),
+                #                    ('desired_cond', desired_cond.data[0, ...].cpu().numpy().astype('str'))
+                #                    ])
 
             # keep data for visualization
             if keep_data_for_visuals:
-                self._vis_real_img = util.tensor2im(self._input_frames, idx=-1)
-                self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
-                self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
-                self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
-                self._vis_target_img = util.tensor2im(target_frame.data)
+                self._vis_first_frame = util.tensor2im(self._first_frame)
+                self._vis_real_img = util.tensor2vid(self._input_frames[:, 1:, :, :, :])
+                self._vis_fake_img_unmasked = util.tensor2vid(fake_videos.data)
+                self._vis_fake_img = util.tensor2vid(fake_videos_masked.data)
+                self._vis_fake_img_mask = util.tensor2maskvid(vid_mask.data)
                 self._vis_annotations = self._input_annotations.cpu()[0, ...].numpy()
-                self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
-                #self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
-                self._vis_batch_fake_img_mask = util.tensor2maskim(fake_img_mask.data, idx=-1)
-                self._vis_batch_fake_img = util.tensor2im(fake_imgs_masked.data, idx=-1)
+                self._vis_batch_real_img = util.tensor2vid(self._input_frames, idx=-1)
+                self._vis_batch_fake_img_mask = util.tensor2maskvid(vid_mask.data, idx=-1)
+                self._vis_batch_fake_img = util.tensor2vid(fake_videos_masked.data, idx=-1)
 
-            return imgs, data
+            return imgs
 
     def optimize_parameters(self, train_generator=True, keep_data_for_visuals=False):
         if self._is_train:
@@ -216,17 +220,18 @@ class GANimation(BaseModel):
             self._B = self._input_frames.size(0)
             self._frames = Variable(self._input_frames)
             self._annotations = Variable(self._input_annotations)
-            self._desired_cond = Variable(self._input_desired_cond)
-            self._target_frame = Variable(self._input_target_frame)
             self._first = Variable(self._first_frame)
+            self._first_ann = Variable(self._first_ann)
 
             # train D
-            loss_D, fake_imgs_masked = self._forward_D()
+            loss_D, fake_vids_masked = self._forward_D()
             self._optimizer_D.zero_grad()
             loss_D.backward()
             self._optimizer_D.step()
 
-            loss_D_gp= self._gradinet_penalty_D(fake_imgs_masked)
+            loss_D_gp = 0
+            for i in range(fake_vids_masked.size(1)):
+                loss_D_gp += self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :])
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
@@ -239,101 +244,103 @@ class GANimation(BaseModel):
                 self._optimizer_G.step()
 
     def _forward_G(self, keep_data_for_visuals):
-
-        #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
-
         # generate fake images
-        fake_imgs, fake_img_mask = self._G.forward(self._frames, self._annotations)
-        fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-        fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
-
-        # D(G(Ic1, c2)*M) masked
-        d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
-
-        self._loss_g_masked_fake = self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
-        self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
-        # G(G(Ic1,c2), c1)
-        #rec_real_img_rgb, rec_real_img_mask = self._G.forward(fake_imgs_masked, self._real_cond)
-        #rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
-        #rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
-
-        #d_cyc_desired_img_masked_prob, d_cyc_desired_img_masked_cond = self._D.forward(rec_real_imgs)
-        #self._loss_g_cyc_cond = self._criterion_D_cond(d_cyc_desired_img_masked_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
-
-        # l_cyc(G(G(Ic1,c2), c1)*M)
-        self._loss_g_cyc = self._criterion_cycle(fake_imgs_masked, self._target_frame) * self._opt.lambda_cyc
-        #self._loss_g_cyc = (self._criterion_cycle(rec_real_img_mask*rec_real_imgs, rec_real_img_mask*self._real_img) + \
-        #    self._robust_cycle((1-rec_real_img_mask)*rec_real_imgs, (1-rec_real_img_mask)*self._real_img))*self._opt.lambda_cyc
+        self._loss_g_masked_fake = 0
+        self._loss_g_masked_cond = 0
+        self._loss_g_cyc = 0
+        self._loss_g_mask_1 = 0
+        self._loss_g_mask_1_smooth = 0
 
 
+        fake_imgs_masked = None
+        fake_videos = list()
+        fake_mask_videos = list()
+        fake_videos_masked = list()
+        for idx in range(1, self._opt.frames_cnt):
+            real_img = self._frames[:, idx, :, :, :]
+            real_cond = self._annotations[:, idx, :]
 
-        # loss mask
-        self._loss_g_mask_1 = torch.mean(fake_img_mask) * self._opt.lambda_mask
-        #self._loss_g_mask_1 = self._criterion_cycle(1, torch.mean(fake_img_mask)) * self._opt.lambda_mask
-        #self._loss_g_mask_1 = self._criterion_cycle(1, torch.mean(fake_img_mask)) * self._opt.lambda_mask
+            if fake_imgs_masked is None:
+                fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
+                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
+            else:
+                fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
+                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                fake_imgs_masked = fake_img_mask * fake_imgs_masked + (1 - fake_img_mask) * fake_imgs
 
+            d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
+            self._loss_g_masked_fake += self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
+            self._loss_g_masked_cond += self._criterion_D_cond(d_fake_desired_img_masked_cond, real_cond) / self._B * self._opt.lambda_D_cond
+            self._loss_g_cyc += self._criterion_cycle(fake_imgs_masked, real_img) * self._opt.lambda_cyc
+            self._loss_g_mask_1 += torch.mean(fake_img_mask) * self._opt.lambda_mask
+            self._loss_g_mask_1_smooth += self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
 
+            fake_videos_masked.append(fake_imgs_masked)
+            fake_mask_videos.append(fake_img_mask)
+            fake_videos.append(fake_imgs)
 
-        #self._loss_g_mask_2 = torch.mean(rec_real_img_mask) * self._opt.lambda_mask
-        #self._loss_g_mask_1 = (torch.norm(fake_img_mask)**2) * self._opt.lambda_mask
-        #self._loss_g_mask_2 = (torch.norm(rec_real_img_mask)**2) * self._opt.lambda_mask
-        self._loss_g_mask_1_smooth = self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
-        #self._loss_g_mask_2_smooth = self._compute_loss_smooth(rec_real_img_mask) * self._opt.lambda_mask_smooth
-
-        #mask_inverse = torch.inverse(fake_img_mask)
-        #self._loss_inv_mask = self._criterion_cycle(rec_real_img_mask, mask_inverse)*self._opt.lambda_mask_inv
-        #self._loss_color_maps = self._criterion_cycle(fake_imgs, rec_real_img_rgb)*self._opt.lambda_color_maps
+        fake_videos = torch.transpose(torch.stack(fake_videos), 0, 1)
+        fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
+        fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
 
         # keep data for visualization
         if keep_data_for_visuals:
-            self._vis_real_img = util.tensor2im(self._input_frames, idx=-1)
-            self._vis_fake_img_unmasked = util.tensor2im(fake_imgs.data)
-            self._vis_fake_img = util.tensor2im(fake_imgs_masked.data)
-            self._vis_fake_img_mask = util.tensor2maskim(fake_img_mask.data)
-            self._vis_target_img = util.tensor2im(self._target_frame)
-            self._vis_annotations = self._input_annotations.cpu()[0, ...].numpy()
-            self._vis_desired_cond = self._input_desired_cond.cpu()[0, ...].numpy()
+            self._vis_real_img = util.tensor2vid(self._frames.data)
+            self._vis_fake_img_unmasked = util.tensor2vid(fake_videos.data)
+            self._vis_fake_img = util.tensor2vid(fake_videos_masked.data)
+            self._vis_fake_img_mask = util.tensor2maskvid(fake_mask_videos.data)
+            self._vis_first_frame = util.tensor2im(self._first.data)
+            self._vis_annotations = self._annotations.cpu()[0, ...].numpy()
+            self._vis_first_ann = self._first_ann.cpu()[0, ...].numpy()
             #self._vis_batch_real_img = util.tensor2im(self._input_frames, idx=-1)
-            self._vis_batch_fake_img_mask = util.tensor2maskim(fake_img_mask.data, idx=-1)
-            self._vis_batch_fake_img = util.tensor2im(fake_imgs_masked.data, idx=-1)
-
-            #self._vis_rec_img_unmasked = util.tensor2im(rec_real_img_rgb.data)
-            #self._vis_rec_real_img = util.tensor2im(rec_real_imgs.data)
-            #self._vis_rec_real_img_mask = util.tensor2maskim(rec_real_img_mask.data)
-            #self._vis_batch_rec_real_img = util.tensor2im(rec_real_imgs.data, idx=-1)
+            self._vis_batch_real_img = util.tensor2vid(self._frames, idx=-1)
+            self._vis_batch_fake_img_mask = util.tensor2maskvid(fake_mask_videos.data, idx=-1)
+            self._vis_batch_fake_img = util.tensor2vid(fake_videos_masked.data, idx=-1)
 
         # combine losses
-        #return self._loss_g_masked_fake + self._loss_g_masked_cond + \
-        #       self._loss_g_cyc + \
-        #       self._loss_g_mask_1 + self._loss_g_mask_1_smooth
-
         return self._loss_g_masked_fake + self._loss_g_masked_cond + \
+               self._loss_g_cyc + \
                self._loss_g_mask_1 + self._loss_g_mask_1_smooth
 
+
     def _forward_D(self):
-        #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
-        # generate fake images
-        fake_imgs, fake_img_mask = self._G.forward(self._frames, self._annotations)
-        fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-        fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
+        self._loss_d_real = 0
+        self._loss_d_cond = 0
+        self._loss_d_fake = 0
+        fake_imgs_masked = None
+        fake_videos_masked = list()
+        for idx in range(1, self._opt.frames_cnt):
+            real_img = self._frames[:, idx, :, :, :]
+            real_cond = self._annotations[:, idx, :]
 
-        # D(real_I)
-        d_real_img_prob, d_real_img_cond = self._D.forward(self._target_frame)
-        self._loss_d_real = self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
-        self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
-        # D(fake_I)
-        d_fake_desired_img_prob, _ = self._D.forward(fake_imgs_masked.detach())
-        self._loss_d_fake = self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
+            if fake_imgs_masked is None:
+                fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
+                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
+            else:
+                fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
+                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                fake_imgs_masked = fake_img_mask * fake_imgs_masked + (1 - fake_img_mask) * fake_imgs
 
-        # combine losses
-        #return self._loss_d_real  + self._loss_d_fake + self._loss_d_emo, fake_imgs_masked
-        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_imgs_masked
+
+            d_real_img_prob, d_real_img_cond = self._D.forward(real_img)
+            self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
+            self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, self._desired_cond) / self._B * self._opt.lambda_D_cond
+            # D(fake_I)
+            d_fake_desired_img_prob, _ = self._D.forward(fake_imgs_masked.detach())
+            self._loss_d_fake += self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
+            fake_videos_masked.append(fake_imgs_masked)
+        fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
+
+
+        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_videos_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
     def _gradinet_penalty_D(self, fake_imgs_masked):
         #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # interpolate sample
-        alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._target_frame)
+        alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._first_frame)
         interpolated = Variable(alpha * self._target_frame.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
         interpolated_prob, _ = self._D(interpolated)
 
@@ -391,25 +398,22 @@ class GANimation(BaseModel):
     def get_current_visuals(self):
         # visuals return dictionary
         visuals = OrderedDict()
-
         # input visuals
         #title_input_img = os.path.basename(self._input_real_img_path[0])
 
-        visuals['1_input_img'] = np.flip(self._vis_real_img, axis =2)
-        visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=2)
-        #visuals['3_rec_real_img'] = np.flip(self._vis_rec_real_img, axis=2)
-        visuals['4_fake_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
-        visuals['5_fake_img_mask'] = np.flip(self._vis_fake_img_mask, axis=2)
-        visuals['6_target_img'] = np.flip(self._vis_target_img, axis=2)
-        #visuals['6_rec_real_img_mask'] = np.flip(self._vis_rec_real_img_mask, axis=2)
-        #visuals['7_cyc_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
+        visuals['1_input_img'] = np.flip(self._vis_real_img, axis =3)
+        visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=3)
+        visuals['4_fake_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=3)
+        visuals['5_fake_img_mask'] = np.flip(self._vis_fake_img_mask, axis=3)
+        visuals['6_first_frame'] = np.flip(self._vis_first_frame, axis=2)
         visuals['8_annotations'] = self._vis_annotations
-        visuals['9_desired_cond'] = self._vis_desired_cond
+        visuals['9_first_ann'] = self._vis_first_ann
         # visuals['8_fake_img_mask_sat'] = self._vis_fake_img_mask_saturated
         # visuals['9_rec_real_img_mask_sat'] = self._vis_rec_real_img_mask_saturated
         #visuals['10_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=2)
-        visuals['11_batch_fake_img'] = np.flip(self._vis_batch_fake_img, axis=2)
-        visuals['12_batch_fake_img_mask'] = np.flip(self._vis_batch_fake_img_mask, axis=2)
+        visuals['11_batch_fake_img'] = np.flip(self._vis_batch_fake_img, axis=3)
+        visuals['12_batch_fake_img_mask'] = np.flip(self._vis_batch_fake_img_mask, axis=3)
+        visuals['13_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=3)
         # visuals['11_idt_img'] = self._vis_idt_img
 
         return visuals

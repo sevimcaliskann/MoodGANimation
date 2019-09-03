@@ -73,12 +73,6 @@ class Train:
                 self._model.update_learning_rate()
 
 
-	    #self._writer.add_embedding(self._fake_imgs, metadata=self._desired_conds, label_img=self._input_imgs, tag='desired_conds_fake')
-        #self._writer.add_embedding(self._rec_real_imgs, metadata=self._real_conds, label_img=self._fake_imgs, tag='real_conds_rec_real')
-        #self._writer.close()
-        #self._writer.add_embedding(self._rec_real_imgs, metadata=self._desired_conds, label_img=self._input_imgs, tag='desired_conds_rec_real')
-        #self._writer.add_embedding(self._rec_real_imgs, metadata=self._real_conds, label_img=self._input_imgs, tag='reconstruction_with_real_conds')
-
     def _train_epoch(self, i_epoch):
         epoch_iter = 0
         self._model.set_train()

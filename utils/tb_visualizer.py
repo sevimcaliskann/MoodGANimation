@@ -4,6 +4,7 @@ import time
 import torch
 from . import util
 from tensorboardX import SummaryWriter
+import skvideo.io
 
 
 class TBVisualizer:
@@ -24,16 +25,22 @@ class TBVisualizer:
 
     def display_current_results(self, visuals, it, is_train, save_visuals=False):
         for label, image_numpy in visuals.items():
+            sum_name = '{}/{}'.format('Train' if is_train else 'Test', label)
             if len(image_numpy.shape)==3:
                 tmp = np.transpose(image_numpy, (2,0,1)).astype(np.float32)
-                sum_name = '{}/{}'.format('Train' if is_train else 'Test', label)
-                #print('image shape: ', tmp.shape)
-                #print('label: ', label)
                 self._writer.add_image(tag = sum_name, img_tensor = torch.from_numpy(tmp)/255, global_step=it)
                 if save_visuals:
                     util.save_image(image_numpy,
                                 os.path.join(self._opt.checkpoints_dir, self._opt.name,
                                              'event_imgs', sum_name, '%08d.png' % it))
+            elif len(image_numpy.shape)==4:
+                tmp = np.transpose(image_numpy, (0, 3, 1, 2)).astype(np.float32)
+                self._writer.add_image(tag = sum_name, vid_tensor = torch.from_numpy(tmp)/255, global_step=it)
+                if save_visuals:
+                    util.save_video(image_numpy,
+                                os.path.join(self._opt.checkpoints_dir, self._opt.name,
+                                             'event_imgs', sum_name, '%08d.png' % it))
+
         self._writer.export_scalars_to_json(self._tb_path)
 
     def plot_scalars(self, scalars, it, is_train):
