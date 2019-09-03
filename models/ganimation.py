@@ -105,7 +105,6 @@ class GANimation(BaseModel):
     def set_input(self, input):
         self._input_frames.resize_(input['frames'].size()).copy_(input['frames'])
         self._input_annotations.resize_(input['annotations'].size()).copy_(input['annotations'])
-        print('annoataions size check: ', input['annotations'].size())
         #self._input_desired_cond.resize_(input['desired_cond'].size()).copy_(input['desired_cond'])
         #self._input_target_frame.resize_(input['target_frame'].size()).copy_(input['target_frame'])
         self._first_frame.resize_(input['first_frame'].size()).copy_(input['first_frame'])
@@ -264,7 +263,7 @@ class GANimation(BaseModel):
             if fake_imgs_masked is None:
                 fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
+                fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
             else:
                 fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
@@ -318,7 +317,7 @@ class GANimation(BaseModel):
             if fake_imgs_masked is None:
                 fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
+                fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
             else:
                 fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
