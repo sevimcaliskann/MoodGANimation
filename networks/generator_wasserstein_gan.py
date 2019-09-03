@@ -50,7 +50,6 @@ class Generator(NetworkBase):
         c = c.unsqueeze(2).unsqueeze(3)
         c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
-        print('before passing to generator size of x: ', x.size())
         features = self.main(x)
         return self.img_reg(features), self.attetion_reg(features)
 
