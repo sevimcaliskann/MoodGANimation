@@ -404,7 +404,7 @@ class GANimation(BaseModel):
         # input visuals
         #title_input_img = os.path.basename(self._input_real_img_path[0])
 
-        visuals['1_input_img'] = np.flip(self._vis_real_img, axis =1
+        visuals['1_input_img'] = np.flip(self._vis_real_img, axis =1)
         visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=1)
         visuals['4_fake_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=1)
         visuals['5_fake_img_mask'] = np.flip(self._vis_fake_img_mask, axis=1)
