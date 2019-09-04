@@ -404,19 +404,19 @@ class GANimation(BaseModel):
         # input visuals
         #title_input_img = os.path.basename(self._input_real_img_path[0])
 
-        visuals['1_input_img'] = np.flip(self._vis_real_img, axis =1)
-        visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=1)
-        visuals['4_fake_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=1)
-        visuals['5_fake_img_mask'] = np.flip(self._vis_fake_img_mask, axis=1)
-        visuals['6_first_frame'] = np.flip(self._vis_first_frame, axis=2)
+        visuals['1_input_img'] = np.flip(np.flip(self._vis_real_img, axis =1), axis=3)
+        visuals['2_fake_img'] = np.flip(np.flip(self._vis_fake_img, axis=1), axis=3)
+        visuals['4_fake_img_unmasked'] = np.flip(np.flip(self._vis_fake_img_unmasked, axis=1), axis=3)
+        visuals['5_fake_img_mask'] = np.flip(np.flip(self._vis_fake_img_mask, axis=1), axis=3)
+        visuals['6_first_frame'] = np.flip(np.flip(self._vis_first_frame, axis=2), axis=0)
         visuals['8_annotations'] = self._vis_annotations
         visuals['9_first_ann'] = self._vis_first_ann
         # visuals['8_fake_img_mask_sat'] = self._vis_fake_img_mask_saturated
         # visuals['9_rec_real_img_mask_sat'] = self._vis_rec_real_img_mask_saturated
         #visuals['10_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=2)
-        visuals['11_batch_fake_img'] = np.flip(self._vis_batch_fake_img, axis=1)
-        visuals['12_batch_fake_img_mask'] = np.flip(self._vis_batch_fake_img_mask, axis=1)
-        visuals['13_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=1)
+        visuals['11_batch_fake_img'] = np.flip(np.flip(self._vis_batch_fake_img, axis=1), axis=3)
+        visuals['12_batch_fake_img_mask'] = np.flip(np.flip(self._vis_batch_fake_img_mask, axis=1), axis=3)
+        visuals['13_batch_real_img'] = np.flip(np.flip(self._vis_batch_real_img, axis=1), axis=3)
         # visuals['11_idt_img'] = self._vis_idt_img
 
         return visuals
