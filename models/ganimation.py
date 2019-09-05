@@ -375,20 +375,20 @@ class GANimation(BaseModel):
         visuals['2_fake_img'] = plot_utils.plot_au(self._vis_fake_img, self._vis_desired_cond)
         visuals['3_rec_real_img'] = plot_utils.plot_au(self._vis_rec_real_img, self._vis_real_cond)'''
 
-        visuals['1_input_img'] = np.flip(self._vis_real_img, axis =2)
-        visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=2)
-        visuals['3_rec_real_img'] = np.flip(self._vis_rec_real_img, axis=2)
-        visuals['4_fake_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
-        visuals['5_fake_img_mask'] = np.flip(self._vis_fake_img_mask, axis=2)
-        visuals['6_rec_real_img_mask'] = np.flip(self._vis_rec_real_img_mask, axis=2)
-        visuals['7_cyc_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
+        visuals['1_input_img'] = np.flip(self._vis_real_img, axis =1)
+        visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=1)
+        visuals['3_rec_real_img'] = np.flip(self._vis_rec_real_img, axis=1)
+        visuals['4_fake_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=1)
+        visuals['5_fake_img_mask'] = np.flip(self._vis_fake_img_mask, axis=1)
+        visuals['6_rec_real_img_mask'] = np.flip(self._vis_rec_real_img_mask, axis=1)
+        visuals['7_cyc_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=1)
         visuals['8_real_cond'] = self._vis_real_cond
         visuals['9_desired_cond'] = self._vis_desired_cond
         # visuals['8_fake_img_mask_sat'] = self._vis_fake_img_mask_saturated
         # visuals['9_rec_real_img_mask_sat'] = self._vis_rec_real_img_mask_saturated
-        visuals['10_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=2)
-        visuals['11_batch_fake_img'] = np.flip(self._vis_batch_fake_img, axis=2)
-        visuals['12_batch_fake_img_mask'] = np.flip(self._vis_batch_fake_img_mask, axis=2)
+        visuals['10_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=1)
+        visuals['11_batch_fake_img'] = np.flip(self._vis_batch_fake_img, axis=1)
+        visuals['12_batch_fake_img_mask'] = np.flip(self._vis_batch_fake_img_mask, axis=1)
         # visuals['11_idt_img'] = self._vis_idt_img
 
         return visuals
