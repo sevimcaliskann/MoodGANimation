@@ -162,7 +162,8 @@ class GANimation(BaseModel):
             data = None
             if return_estimates:
                 # generate images
-                vid_real_img = util.tensor2vid(self._input_frames[:, 1:, :, :, :])
+                #vid_real_img = util.tensor2vid(self._input_frames[:, 1:, :, :, :])
+                vid_real_img = util.tensor2vid(self._first_frame.repeat(1, fake_videos.size(1), 1, 1, 1))
                 vid_fake_imgs = util.tensor2vid(fake_videos.data)
                 #im_fake_img_mask_norm = util.tensor2maskim(fake_img_mask_norm.data)
                 vid_mask = util.tensor2maskvid(fake_mask_videos.data)
@@ -176,7 +177,8 @@ class GANimation(BaseModel):
                 #                               1)
                 vid_concat_img = np.concatenate([vid_real_img, vid_fake_masked, vid_fake_imgs, vid_mask], 2)
 
-                vid_real_img_batch = util.tensor2vid(self._input_frames[:, 1:, :, :, :], idx=-1)
+                #vid_real_img_batch = util.tensor2vid(self._input_frames[:, 1:, :, :, :], idx=-1)
+                vid_real_img_batch = util.tensor2vid(self._first_frame.repeat(1, fake_videos.size(1), 1, 1, 1), idx=-1)
                 vid_fake_imgs_batch = util.tensor2vid(fake_videos.data, idx=-1)
                 #im_fake_img_mask_norm_batch = util.tensor2maskim(fake_img_mask_norm.data, idx=-1, nrows=1)
                 vid_fake_masked_batch = util.tensor2vid(fake_videos_masked.data, idx=-1)

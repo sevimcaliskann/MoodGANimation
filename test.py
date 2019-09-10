@@ -16,6 +16,9 @@ from data.dataset_aus import AusDataset
 from data.custom_dataset_data_loader import CustomDatasetDataLoader
 from options.test_options import TestOptions
 from skimage import io
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import math
 
 class MorphFacesInTheWild:
     def __init__(self, opt):
@@ -27,21 +30,39 @@ class MorphFacesInTheWild:
                                               transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                                                    std=[0.5, 0.5, 0.5])
                                               ])
+        self._moods = get_moods_from_pickle('/home/sevim/Downloads/master_thesis_study_documents/code-examples/affwild/annotations/data.pkl')
 
-    def morph_file(self, img_path, expression):
+
+    def morph_file(self, img_path, expression, traj):
         img = cv_utils.read_cv2_img(img_path)
-        #img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # Open this one for cropped_28_01
-        #newX,newY = img.shape[1]*2, img.shape[0]*2
-        #img = cv2.resize(img,(newX,newY))
-        morphed_img = self._img_morph(img, expression)
-        #morphed_img = cv2.cvtColor(morphed_img, cv2.COLOR_RGB2BGR)
-        output_name = os.path.join(self._opt.output_dir, '{0}_epoch_{1}_intensity_{2}_out.png'.format(os.path.basename(img_path)[:-4], \
-        str(self._opt.load_epoch), str(expression[0])))
-        self._save_img(morphed_img, output_name)
+        morphed_video = self._img_morph(img, expression)
+
+        output_name = os.path.join(self._opt.output_dir, \
+                '{0}_epoch_{1}_out.mp4'.format(os.path.basename(img_path)[:-4], \
+                str(self._opt.load_epoch)))
+        out = cv2.VideoWriter(output_name,cv2.VideoWriter_fourcc(*'mjpg'), 2, \
+                    (morphed_video.shape[2]+morphed_video.shape[1],morphed_video.shape[1]))
+        for i in range(morphed_video.shape[0]):
+            ch = morphed_video[i]
+            f = cv2.resize(traj[i+1], (ch.shape[0], ch.shape[0]))
+            tmp = np.concatenate((ch,f), axis=1)
+            out.write(cv2.cvtColor(tmp, cv2.COLOR_BGR2RGB))
+        out.release()
+        print('Morphed image is saved at path {}'.format(output_name))
+
+    def morph_and_tile(self, img_path, expression, label):
+        img = cv_utils.read_cv2_img(img_path)
+        morphed_video = self._img_morph(img, expression, label=label)
+
+        output_name = os.path.join(self._opt.output_dir, \
+                '{0}_epoch_{1}_{2}_out.png'.format(os.path.basename(img_path)[:-4], \
+                str(self._opt.load_epoch), label))
+        tiled_img = np.concatenate(morphed_video, axis=1)
+        self._save_img(tiled_img, output_name)
         print('Morphed image is saved at path {}'.format(output_name))
 
 
-    def _img_morph(self, img, expression):
+    def _img_morph(self, img, expression, label='concat'):
         bbs = face_recognition.face_locations(img)
         if len(bbs) > 0:
             y, right, bottom, x = bbs[0]
@@ -51,18 +72,18 @@ class MorphFacesInTheWild:
         else:
             face = face_utils.resize_face(img)
 
-        morphed_face = self._morph_face(face, expression)
+        morphed_face = self._morph_face(face, expression, label)
 
         return morphed_face
 
-    def _morph_face(self, face, expression):
+    def _morph_face(self, face, expression, label='concat'):
         face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0)
         expression = torch.unsqueeze(torch.from_numpy(expression), 0)
         neutral = torch.unsqueeze(torch.from_numpy(np.array([0.5, 0.5])), 0)
-        test_batch1 = {'real_img': face, 'real_cond': neutral, 'desired_cond': expression, 'sample_id': torch.FloatTensor(), 'real_img_path': []}
+        test_batch1 = {'first_frame': face, 'annotations': expression, 'first_ann': neutral, 'frames': face}
         self._model.set_input(test_batch1)
-        imgs1, _ = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
-        return imgs1['concat']
+        imgs1 = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
+        return imgs1[label]
 
     def _save_img(self, img, filename):
         filepath = os.path.join(self._opt.output_dir, filename)
@@ -86,7 +107,47 @@ def get_aus_values(image_path, csv_folders):
     aus = np.array(tmp.split(','), dtype=np.float32)[2:19]
     return aus
 
+def get_moods_from_pickle(path):
+    return pickle.load(open(path, 'rb'))
 
+def animate_traj(exp):
+    fig = plt.figure(figsize=(10,10))
+    canvas = FigureCanvas(fig)
+    axes = plt.gca()
+    axes.set_xlim([-1.0,1.0])
+    axes.set_ylim([-1.0,1.0])
+    plt.xlabel('Valence')
+    plt.ylabel('Arousal')
+
+    frames = list()
+    val = list()
+    aro = list()
+    for line in exp:
+        val.append(line[0])
+        aro.append(line[1])
+        plt.scatter(val, aro, s=500, c='blue')
+        img = fig2data(fig, canvas)
+        frames.append(img)
+
+    return frames
+
+
+
+def fig2data ( fig, canvas ):
+    """
+    @brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
+    @param fig a matplotlib figure
+    @return a numpy 3D array of RGBA values
+    """
+    # draw the renderer
+    canvas.draw()
+
+    # Get the RGBA buffer from the figure
+    w,h = canvas.get_width_height()
+    buf = np.fromstring(canvas.tostring_rgb(), dtype=np.uint8 )
+    buf.shape = ( w, h,3 )
+
+    return buf
 
 def main():
     print('BEGINING')
@@ -94,24 +155,37 @@ def main():
     if not os.path.isdir(opt.output_dir):
         os.makedirs(opt.output_dir)
 
-
-    #aus_dataset_obj = AusDataset(opt, False)
-    #conds_filepath = opt.test_aus_file
-    #conds = aus_dataset_obj._read_conds(conds_filepath)
-
     morph = MorphFacesInTheWild(opt)
     print("morph objetc is created")
     image_path = opt.input_path
-    '''expression = np.zeros(17)
-    for i in [0, 0.2, 0.4, 0.5, 0.8, 1.0]:
-        expression[opt.au_index] = i
-        print('expression: ', expression)
-        morph.morph_file(image_path, expression)'''
-    for i in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
-        expression = np.zeros(2)
-        expression[0] = i
-        expression[1] = i
-        morph.morph_file(image_path, expression)
+    #expression_ind = np.random.randint(0, len(morph._moods) - 1)
+    #expression = morph._moods[expression_ind:min(expression_ind+opt.frames_cnt, len(morph._moods))]
+
+    #val = np.expand_dims(np.arange(0,1,0.1), axis=1)
+    val = np.expand_dims(np.zeros(10), axis=1)
+    aro = np.expand_dims(np.arange(0,1,0.1), axis=1)
+
+    #third = np.expand_dims(np.zeros(opt.frames_cnt), axis=1)
+    #fourth = np.expand_dims(-1*np.ones(opt.frames_cnt), axis=1)
+    #expression = np.concatenate((expression, third, fourth), axis=1)
+    #expression = np.concatenate((val,aro, third, fourth), axis=1)
+    expression = np.concatenate((val,aro), axis=1)
+
+    frames = animate_traj(expression)
+    traj_img_path = os.path.join(opt.output_dir,'traj_out.png')
+    morph._save_img(frames[-1], traj_img_path)
+
+    morph.morph_file(image_path, expression, frames)
+    morph.morph_and_tile(image_path, expression, 'fake_imgs_masked')
+    morph.morph_and_tile(image_path, expression, 'fake_imgs')
+    morph.morph_and_tile(image_path, expression, 'img_mask')
+    #while expression_ind < len(morph._moods):
+        #expression = np.zeros(2)
+        #expression[0] = i
+        #expression[1] = i
+        #morph.morph_file(image_path, expression)
+        #expression_ind +=1
+        #i +=1
     #expression = np.random.uniform(0, 1, opt.cond_nc)
     #expression = generate_random_cond(conds)
 
