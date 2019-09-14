@@ -162,8 +162,8 @@ def main():
     #expression = morph._moods[expression_ind:min(expression_ind+opt.frames_cnt, len(morph._moods))]
 
     #val = np.expand_dims(np.arange(0,1,0.1), axis=1)
-    val = np.expand_dims(np.zeros(10), axis=1)
-    aro = np.expand_dims(np.arange(0,1,0.1), axis=1)
+    aro = np.expand_dims(np.zeros(10), axis=1)
+    val = np.expand_dims(np.arange(0,1,0.1), axis=1)
 
     #third = np.expand_dims(np.zeros(opt.frames_cnt), axis=1)
     #fourth = np.expand_dims(-1*np.ones(opt.frames_cnt), axis=1)

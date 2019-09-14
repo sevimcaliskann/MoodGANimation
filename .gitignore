@@ -13,3 +13,4 @@ networks/discriminator_wasserstein_gan.pyc
 networks/generator_wasserstein_gan.pyc
 options/base_options.pyc
 options/train_options.pyc
+test_outputs/*
