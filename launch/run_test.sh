@@ -9,7 +9,7 @@ python test.py \
 --checkpoints_dir /home/sevim/Downloads/master_thesis_study_documents/code-examples/ganimation_checkpoints \
 --name ganimation_with_5frames \
 --cond_nc 2 \
---load_epoch -1 \
+--load_epoch 4401 \
 --frames_cnt 10
 #--gpu_ids 2
 
