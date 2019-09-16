@@ -10,7 +10,7 @@ python test.py \
 --name ganimation_with_5frames \
 --cond_nc 2 \
 --load_epoch -1 \
---frames_cnt 6
+--frames_cnt 10
 #--gpu_ids 2
 
 #--name middle_mask_loss_01_02 \

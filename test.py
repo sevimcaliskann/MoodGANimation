@@ -30,11 +30,17 @@ class MorphFacesInTheWild:
                                               transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                                                    std=[0.5, 0.5, 0.5])
                                               ])
-        self._moods = get_moods_from_pickle('/home/sevim/Downloads/master_thesis_study_documents/code-examples/affwild/annotations/data.pkl')
+        self._moods = get_moods_from_pickle(self._opt.moods_pickle_file)
+
+    def _img_morph(self, img, expression, label='concat'):
+        face = self.crop_face(img)
+        morphed_face = self._morph_face(face, expression, label)
+        return morphed_face
 
 
-    def morph_file(self, img_path, expression, traj):
-        img = cv_utils.read_cv2_img(img_path)
+    def morph_file(self, img_path, expression, traj, img=None):
+        if img is None:
+            img = cv_utils.read_cv2_img(img_path)
         morphed_video = self._img_morph(img, expression)
 
         output_name = os.path.join(self._opt.output_dir, \
@@ -50,8 +56,10 @@ class MorphFacesInTheWild:
         out.release()
         print('Morphed image is saved at path {}'.format(output_name))
 
-    def morph_and_tile(self, img_path, expression, label):
-        img = cv_utils.read_cv2_img(img_path)
+    def morph_and_tile(self, img_path, expression, label, img = None):
+        if img is None:
+            img = cv_utils.read_cv2_img(img_path)
+
         morphed_video = self._img_morph(img, expression, label=label)
 
         output_name = os.path.join(self._opt.output_dir, \
@@ -61,8 +69,7 @@ class MorphFacesInTheWild:
         self._save_img(tiled_img, output_name)
         print('Morphed image is saved at path {}'.format(output_name))
 
-
-    def _img_morph(self, img, expression, label='concat'):
+    def crop_face(self, img):
         bbs = face_recognition.face_locations(img)
         if len(bbs) > 0:
             y, right, bottom, x = bbs[0]
@@ -71,10 +78,8 @@ class MorphFacesInTheWild:
             face = face_utils.resize_face(face)
         else:
             face = face_utils.resize_face(img)
+        return face
 
-        morphed_face = self._morph_face(face, expression, label)
-
-        return morphed_face
 
     def _morph_face(self, face, expression, label='concat'):
         face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0)
@@ -85,30 +90,77 @@ class MorphFacesInTheWild:
         imgs1 = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
         return imgs1[label]
 
+    def random_generation(self):
+        val = np.expand_dims(-np.arange(-1,1,0.2), axis=1)
+        aro = np.expand_dims(np.arange(-1,1,0.2), axis=1)
+        #aro = np.expand_dims(np.zeros(10)[4:], axis=1)
+
+        #third = np.expand_dims(np.zeros(opt.frames_cnt), axis=1)
+        #fourth = np.expand_dims(-1*np.ones(opt.frames_cnt), axis=1)
+        #expression = np.concatenate((expression, third, fourth), axis=1)
+        #expression = np.concatenate((val,aro, third, fourth), axis=1)
+        expression = np.concatenate((val,aro), axis=1)
+
+        traj = animate_traj(expression)
+        traj_img_path = os.path.join(self._opt.output_dir,'traj_out.png')
+        self._save_img(traj[-1], traj_img_path)
+
+        self.morph_file(self._opt.input_path, expression, traj)
+        self.morph_and_tile(self._opt.input_path, expression, 'fake_imgs_masked')
+        self.morph_and_tile(self._opt.input_path, expression, 'fake_imgs')
+        self.morph_and_tile(self._opt.input_path, expression, 'img_mask')
+
+
+    def generate_from_groundtruth(self):
+        video = cv2.VideoCapture(self._opt.groundtruth_video)
+        length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
+        start = np.random.randint(0, length-self._opt.frames_cnt)
+        video.set(1, start)
+
+        success, start_face = video.read()
+        start_face = cv2.cvtColor(start_face, cv2.COLOR_RGB2BGR)
+        if not success:
+            print('video %s cannot be read!' % self._opt.groundtruth_video)
+            return
+
+        ground_faces = list()
+        anns = list()
+        anns.append(np.expand_dims(np.asarray(self._moods[video_name + str(start+1)]), axis=0))
+        for i in range(1, self._opt.frames_cnt):
+            success, face = video.read()
+            face = self.crop_face(face)
+            face = cv2.cvtColor(face, cv2.COLOR_RGB2BGR)
+            ground_faces.append(face)
+            anns.append(np.expand_dims(np.asarray(self._moods[video_name + str(start+i+1)]), axis=0))
+        tiled_ = np.concatenate(ground_faces, axis=1)
+        tiled_name = os.path.join(self._opt.output_dir, \
+                '{0}_epoch_{1}_{2}_out.png'.format(os.path.basename(self._opt.groundtruth_video)[:-4], \
+                str(self._opt.load_epoch), 'groundtruth'))
+        self._save_img(tiled_, tiled_name)
+
+        anns = np.concatenate(anns, axis=0)
+        traj = animate_traj(anns)
+        traj_img_path = os.path.join(self._opt.output_dir,'traj_out.png')
+        self._save_img(traj[-1], traj_img_path)
+
+        self.morph_file(self._opt.groundtruth_video, anns, traj, img=start_face)
+        self.morph_and_tile(self._opt.groundtruth_video, anns, 'fake_imgs_masked', img = start_face)
+        self.morph_and_tile(self._opt.groundtruth_video, anns, 'fake_imgs', img=start_face)
+        self.morph_and_tile(self._opt.groundtruth_video, anns, 'img_mask', img=start_face)
+
     def _save_img(self, img, filename):
         filepath = os.path.join(self._opt.output_dir, filename)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # close for cropped_28_01
         cv2.imwrite(filepath, img)
 
-
-def generate_random_cond(conds):
-    cond = None
-    while cond is None:
-        rand_sample_id = conds.keys()[np.random.randint(0, len(conds) - 1)]
-        cond = conds[rand_sample_id].astype(np.float64)
-        cond += np.random.uniform(-0.1, 0.1, cond.shape)
-    return cond
-
-def get_aus_values(image_path, csv_folders):
-    img_base = os.path.basename(image_path)
-    img_base = img_base[:-4]
-    csv_path = os.path.join(csv_folders, img_base + '.csv')
-    tmp = np.loadtxt(csv_path, delimiter='\n', dtype = np.str)[1]
-    aus = np.array(tmp.split(','), dtype=np.float32)[2:19]
-    return aus
-
 def get_moods_from_pickle(path):
-    return pickle.load(open(path, 'rb'))
+    data = pickle.load(open(path, 'rb'))
+    moods = dict()
+    for key, val in data.items():
+        key = key.split('/')[-1][:-4]
+        moods[key] = val
+    return moods
 
 def animate_traj(exp):
     fig = plt.figure(figsize=(10,10))
@@ -157,37 +209,8 @@ def main():
 
     morph = MorphFacesInTheWild(opt)
     print("morph objetc is created")
-    image_path = opt.input_path
-    #expression_ind = np.random.randint(0, len(morph._moods) - 1)
-    #expression = morph._moods[expression_ind:min(expression_ind+opt.frames_cnt, len(morph._moods))]
-
-    val = np.expand_dims(np.arange(-1,1,0.2)[2:8], axis=1)
-    aro = np.expand_dims(np.arange(-1,1,0.2)[2:8], axis=1)
-    #aro = np.expand_dims(np.zeros(10)[4:], axis=1)
-
-    #third = np.expand_dims(np.zeros(opt.frames_cnt), axis=1)
-    #fourth = np.expand_dims(-1*np.ones(opt.frames_cnt), axis=1)
-    #expression = np.concatenate((expression, third, fourth), axis=1)
-    #expression = np.concatenate((val,aro, third, fourth), axis=1)
-    expression = np.concatenate((val,aro), axis=1)
-
-    frames = animate_traj(expression)
-    traj_img_path = os.path.join(opt.output_dir,'traj_out.png')
-    morph._save_img(frames[-1], traj_img_path)
-
-    morph.morph_file(image_path, expression, frames)
-    morph.morph_and_tile(image_path, expression, 'fake_imgs_masked')
-    morph.morph_and_tile(image_path, expression, 'fake_imgs')
-    morph.morph_and_tile(image_path, expression, 'img_mask')
-    #while expression_ind < len(morph._moods):
-        #expression = np.zeros(2)
-        #expression[0] = i
-        #expression[1] = i
-        #morph.morph_file(image_path, expression)
-        #expression_ind +=1
-        #i +=1
-    #expression = np.random.uniform(0, 1, opt.cond_nc)
-    #expression = generate_random_cond(conds)
+    #morph.random_generation()
+    morph.generate_from_groundtruth()
 
 
 
