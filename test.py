@@ -158,18 +158,18 @@ def main():
     morph = MorphFacesInTheWild(opt)
     print("morph objetc is created")
     image_path = opt.input_path
-    expression_ind = np.random.randint(0, len(morph._moods) - 1)
-    expression = morph._moods[expression_ind:min(expression_ind+opt.frames_cnt, len(morph._moods))]
+    #expression_ind = np.random.randint(0, len(morph._moods) - 1)
+    #expression = morph._moods[expression_ind:min(expression_ind+opt.frames_cnt, len(morph._moods))]
 
-    #val = np.expand_dims(np.arange(0,1,0.1), axis=1)
-    #val = np.expand_dims(np.arange(0,1,0.1), axis=1)
-    #aro = np.expand_dims(-1*np.arange(0,1,0.1), axis=1)
+    val = np.expand_dims(np.arange(-1,1,0.2)[2:8], axis=1)
+    aro = np.expand_dims(np.arange(-1,1,0.2)[2:8], axis=1)
+    #aro = np.expand_dims(np.zeros(10)[4:], axis=1)
 
     #third = np.expand_dims(np.zeros(opt.frames_cnt), axis=1)
     #fourth = np.expand_dims(-1*np.ones(opt.frames_cnt), axis=1)
     #expression = np.concatenate((expression, third, fourth), axis=1)
     #expression = np.concatenate((val,aro, third, fourth), axis=1)
-    #expression = np.concatenate((val,aro), axis=1)
+    expression = np.concatenate((val,aro), axis=1)
 
     frames = animate_traj(expression)
     traj_img_path = os.path.join(opt.output_dir,'traj_out.png')
