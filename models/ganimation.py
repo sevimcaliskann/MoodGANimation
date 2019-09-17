@@ -132,7 +132,7 @@ class GANimation(BaseModel):
     def get_image_paths(self):
         return OrderedDict([('cond_id', self._input_cond_id)])
 
-    def forward(self, keep_data_for_visuals=False, return_estimates=False):
+    def forward(self, keep_data_for_visuals=False, return_estimates=False, recurrent=False):
         if not self._is_train:
             first_frame = Variable(self._first_frame, volatile=True)
             fake_imgs_masked = None
@@ -141,18 +141,19 @@ class GANimation(BaseModel):
             fake_videos_masked = list()
             for idx in range(1, self._opt.frames_cnt):
                 real_cond = Variable(self._input_annotations[:, idx, :], volatile=True)
-
-                '''fake_imgs, fake_img_mask = self._G.forward(first_frame, real_cond)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs'''
-                if fake_imgs_masked is None:
+                if recurrent:
                     fake_imgs, fake_img_mask = self._G.forward(first_frame, real_cond)
                     fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
                     fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
                 else:
-                    fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
-                    fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                    fake_imgs_masked = fake_img_mask * fake_imgs_masked .detach()+ (1 - fake_img_mask) * fake_imgs
+                    if fake_imgs_masked is None:
+                        fake_imgs, fake_img_mask = self._G.forward(first_frame, real_cond)
+                        fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                        fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
+                    else:
+                        fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
+                        fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                        fake_imgs_masked = fake_img_mask * fake_imgs_masked .detach()+ (1 - fake_img_mask) * fake_imgs
                 fake_videos_masked.append(fake_imgs_masked)
                 fake_mask_videos.append(fake_img_mask)
                 fake_videos.append(fake_imgs)

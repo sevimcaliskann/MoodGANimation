@@ -54,7 +54,8 @@ class BaseOptions():
         self._opt.is_train = self.is_train
 
         # set and check load_epoch
-        self._set_and_check_load_epoch()
+        self._opt.load_epoch = self._set_and_check_load_epoch(self._opt.name, self._opt.load_epoch)
+        self._opt.comparison_load_epoch = self._set_and_check_load_epoch(self._opt.comparison_model_name, self._opt.comparison_load_epoch)
 
         # get and set gpus
         self._get_set_gpus()
@@ -69,25 +70,27 @@ class BaseOptions():
 
         return self._opt
 
-    def _set_and_check_load_epoch(self):
-        models_dir = os.path.join(self._opt.checkpoints_dir, self._opt.name)
+    def _set_and_check_load_epoch(self, name, epoch):
+        models_dir = os.path.join(self._opt.checkpoints_dir, name)
         if os.path.exists(models_dir):
-            if self._opt.load_epoch == -1:
+            if epoch == -1:
                 load_epoch = 0
                 for file in os.listdir(models_dir):
                     if file.startswith("net_epoch_"):
                         load_epoch = max(load_epoch, int(file.split('_')[2]))
-                self._opt.load_epoch = load_epoch
+                epoch = load_epoch
             else:
                 found = False
                 for file in os.listdir(models_dir):
                     if file.startswith("net_epoch_"):
-                        found = int(file.split('_')[2]) == self._opt.load_epoch
+                        found = int(file.split('_')[2]) == epoch
                         if found: break
-                assert found, 'Model for epoch %i not found' % self._opt.load_epoch
+                assert found, 'Model for epoch %i not found' % epoch
         else:
-            assert self._opt.load_epoch < 1, 'Model for epoch %i not found' % self._opt.load_epoch
-            self._opt.load_epoch = 0
+            assert epoch < 1, 'Model for epoch %i not found' % epoch
+            epoch = 0
+
+        return epoch
 
     def _get_set_gpus(self):
         # get gpu ids
