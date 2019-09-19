@@ -3,6 +3,17 @@ import os
 from utils import util
 import torch
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 class BaseOptions():
     def __init__(self):
         self._parser = argparse.ArgumentParser()
@@ -39,10 +50,7 @@ class BaseOptions():
         self._parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
         self._parser.add_argument('--do_saturate_mask', action="store_true", default=False, help='do use mask_fake for mask_cyc')
         self._parser.add_argument('--face_gpu_id', type=str, default='8', help='gpu for pretrained cnn model for face detection')
-
-
-
-
+        self._parser.add_argument('--recurrent', type=str2bool, nargs='?', const=True, default=False, help='activate recurrent training')
         self._initialized = True
 
     def parse(self):
@@ -55,7 +63,6 @@ class BaseOptions():
 
         # set and check load_epoch
         self._opt.load_epoch = self._set_and_check_load_epoch(self._opt.name, self._opt.load_epoch)
-        #self._opt.comparison_load_epoch = self._set_and_check_load_epoch(self._opt.comparison_model_name, self._opt.comparison_load_epoch)
 
         # get and set gpus
         self._get_set_gpus()

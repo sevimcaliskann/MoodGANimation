@@ -181,7 +181,7 @@ class Train:
 
             # evaluate model
             self._model.set_input(val_batch)
-            self._model.forward(keep_data_for_visuals=(i_val_batch == 0), recurrent=True)
+            self._model.forward(keep_data_for_visuals=(i_val_batch == 0))
             errors = self._model.get_current_errors()
 
             # store current batch errors

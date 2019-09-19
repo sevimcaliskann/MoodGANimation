@@ -32,16 +32,16 @@ class MorphFacesInTheWild:
                                               ])
         self._moods = get_moods_from_pickle(self._opt.moods_pickle_file)
 
-    def _img_morph(self, img, expression, label='concat', recurrent=False):
+    def _img_morph(self, img, expression, label='concat'):
         face = self.crop_face(img)
-        morphed_face = self._morph_face(face, expression, label, recurrent=recurrent)
+        morphed_face = self._morph_face(face, expression, label)
         return morphed_face
 
 
-    def morph_file(self, img_path, expression, traj, img=None, recurrent=False):
+    def morph_file(self, img_path, expression, traj, img=None):
         if img is None:
             img = cv_utils.read_cv2_img(img_path)
-        morphed_video = self._img_morph(img, expression, recurrent=recurrent)
+        morphed_video = self._img_morph(img, expression)
 
         output_name = os.path.join(self._opt.output_dir, \
                 '{0}_epoch_{1}_out.mp4'.format(os.path.basename(img_path)[:-4], \
@@ -56,11 +56,11 @@ class MorphFacesInTheWild:
         out.release()
         print('Morphed image is saved at path {}'.format(output_name))
 
-    def morph_and_tile(self, img_path, expression, label, img = None, recurrent=False):
+    def morph_and_tile(self, img_path, expression, label, img = None):
         if img is None:
             img = cv_utils.read_cv2_img(img_path)
 
-        morphed_video = self._img_morph(img, expression, label=label, recurrent=recurrent)
+        morphed_video = self._img_morph(img, expression, label=label)
 
         output_name = os.path.join(self._opt.output_dir, \
                 '{0}_epoch_{1}_{2}_out.png'.format(os.path.basename(img_path)[:-4], \
@@ -81,16 +81,16 @@ class MorphFacesInTheWild:
         return face
 
 
-    def _morph_face(self, face, expression, label='concat', recurrent=False):
+    def _morph_face(self, face, expression, label='concat'):
         face = torch.unsqueeze(self._transform(Image.fromarray(face)), 0)
         expression = torch.unsqueeze(torch.from_numpy(expression), 0)
         neutral = torch.unsqueeze(torch.from_numpy(np.array([0.5, 0.5])), 0)
         test_batch1 = {'first_frame': face, 'annotations': expression, 'first_ann': neutral, 'frames': face}
         self._model.set_input(test_batch1)
-        imgs1 = self._model.forward(keep_data_for_visuals=False, return_estimates=True, recurrent=recurrent)
+        imgs1 = self._model.forward(keep_data_for_visuals=False, return_estimates=True)
         return imgs1[label]
 
-    def random_generation(self, get_start_from_video=False, recurrent=False):
+    def random_generation(self, get_start_from_video=False):
         val = np.expand_dims(np.arange(-0.6,0.6,0.2), axis=1)
         aro = np.expand_dims(np.arange(-0.6,0.6,0.2), axis=1)
         #val = np.expand_dims(np.zeros(10), axis=1)
@@ -105,16 +105,16 @@ class MorphFacesInTheWild:
         traj_img_path = os.path.join(self._opt.output_dir,'traj_out.png')
         self._save_img(traj[-1], traj_img_path)
         if not get_start_from_video:
-            self.morph_file(self._opt.input_path, expression, traj, recurrent=recurrent)
-            self.morph_and_tile(self._opt.input_path, expression, 'fake_imgs_masked', recurrent=recurrent)
-            self.morph_and_tile(self._opt.input_path, expression, 'fake_imgs', recurrent=recurrent)
-            self.morph_and_tile(self._opt.input_path, expression, 'img_mask', recurrent=recurrent)
+            self.morph_file(self._opt.input_path, expression, traj)
+            self.morph_and_tile(self._opt.input_path, expression, 'fake_imgs_masked')
+            self.morph_and_tile(self._opt.input_path, expression, 'fake_imgs')
+            self.morph_and_tile(self._opt.input_path, expression, 'img_mask')
         else:
             img = self.get_start_face_from_video()
-            self.morph_file(self._opt.groundtruth_video, expression, traj, img=img, recurrent=recurrent)
-            self.morph_and_tile(self._opt.groundtruth_video, expression, 'fake_imgs_masked', img=img, recurrent=recurrent)
-            self.morph_and_tile(self._opt.groundtruth_video, expression, 'fake_imgs', img=img, recurrent=recurrent)
-            self.morph_and_tile(self._opt.groundtruth_video, expression, 'img_mask', img=img, recurrent=recurrent)
+            self.morph_file(self._opt.groundtruth_video, expression, traj, img=img)
+            self.morph_and_tile(self._opt.groundtruth_video, expression, 'fake_imgs_masked', img=img)
+            self.morph_and_tile(self._opt.groundtruth_video, expression, 'fake_imgs', img=img)
+            self.morph_and_tile(self._opt.groundtruth_video, expression, 'img_mask', img=img)
 
     def get_start_face_from_video(self):
         video = cv2.VideoCapture(self._opt.groundtruth_video)
@@ -132,7 +132,7 @@ class MorphFacesInTheWild:
         video.release()
         return start_face
 
-    def generate_from_groundtruth(self, recurrent=False):
+    def generate_from_groundtruth(self):
         video = cv2.VideoCapture(self._opt.groundtruth_video)
         length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
@@ -166,10 +166,10 @@ class MorphFacesInTheWild:
         traj_img_path = os.path.join(self._opt.output_dir,'traj_ground_out.png')
         self._save_img(traj[-1], traj_img_path)
 
-        self.morph_file(self._opt.groundtruth_video, anns, traj, img=start_face, recurrent=recurrent)
-        self.morph_and_tile(self._opt.groundtruth_video, anns, 'fake_imgs_masked', img = start_face, recurrent=recurrent)
-        self.morph_and_tile(self._opt.groundtruth_video, anns, 'fake_imgs', img=start_face, recurrent=recurrent)
-        self.morph_and_tile(self._opt.groundtruth_video, anns, 'img_mask', img=start_face, recurrent=recurrent)
+        self.morph_file(self._opt.groundtruth_video, anns, traj, img=start_face)
+        self.morph_and_tile(self._opt.groundtruth_video, anns, 'fake_imgs_masked', img = start_face)
+        self.morph_and_tile(self._opt.groundtruth_video, anns, 'fake_imgs', img=start_face)
+        self.morph_and_tile(self._opt.groundtruth_video, anns, 'img_mask', img=start_face)
         return start_face, anns
 
     def _save_img(self, img, filename):
@@ -231,17 +231,17 @@ def main():
         os.makedirs(opt.output_dir)
     morph = MorphFacesInTheWild(opt)
     print("morph objetc is created")
-    #morph.random_generation(True, recurrent=True)
-    img, expression = morph.generate_from_groundtruth(recurrent=True)
+    #morph.random_generation(True)
+    img, expression = morph.generate_from_groundtruth()
 
     opt.name = opt.comparison_model_name
     opt.load_epoch = opt.comparison_load_epoch
     morph_comparison = MorphFacesInTheWild(opt)
 
-    #morph_comparison.morph_file(opt.groundtruth_video, expression, traj, img=img, recurrent=False)
-    morph_comparison.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs_masked', img=img, recurrent=False)
-    morph_comparison.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs', img=img, recurrent=False)
-    morph_comparison.morph_and_tile(opt.groundtruth_video, expression, 'img_mask', img=img, recurrent=False)
+    #morph_comparison.morph_file(opt.groundtruth_video, expression, traj, img=img)
+    morph_comparison.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs_masked', img=img)
+    morph_comparison.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs', img=img)
+    morph_comparison.morph_and_tile(opt.groundtruth_video, expression, 'img_mask', img=img)
 
 
 

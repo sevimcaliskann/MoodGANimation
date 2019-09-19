@@ -1,4 +1,5 @@
 from .base_options import BaseOptions
+import argparse
 
 
 class TrainOptions(BaseOptions):
@@ -23,7 +24,6 @@ class TrainOptions(BaseOptions):
         self._parser.add_argument('--D_adam_b2', type=float, default=0.999, help='beta2 for D adam')
         self._parser.add_argument('--lambda_D_prob', type=float, default=1, help='lambda for real/fake discriminator loss')
         self._parser.add_argument('--lambda_D_cond', type=float, default=4000, help='lambda for condition discriminator loss')
-	self._parser.add_argument('--lambda_D_emo', type=float, default=1000, help='lambda for emotion discriminator loss')
         self._parser.add_argument('--lambda_cyc', type=float, default=10, help='lambda cycle loss')
         self._parser.add_argument('--lambda_mask_inv', type=float, default=0.01, help='lambda inverse mask regularization')
         self._parser.add_argument('--lambda_color_maps', type=float, default=0.01, help='lambda color maps regularization')

@@ -15,3 +15,29 @@ class TestOptions(BaseOptions):
         self._parser.add_argument('--comparison_model_name', type=str, default='affwild_per_frame_5frames', help = 'when two models are compared with same images')
         self._parser.add_argument('--comparison_load_epoch', type=int, default = -1, help = 'comparison models epoch number to load')
         self.is_train = False
+
+
+    def parse(self):
+        if not self._initialized:
+            self.initialize()
+        self._opt = self._parser.parse_args()
+
+        # set is train or set
+        self._opt.is_train = self.is_train
+
+        # set and check load_epoch
+        self._opt.load_epoch = self._set_and_check_load_epoch(self._opt.name, self._opt.load_epoch)
+        self._opt.comparison_load_epoch = self._set_and_check_load_epoch(self._opt.comparison_model_name, self._opt.comparison_load_epoch)
+
+        # get and set gpus
+        self._get_set_gpus()
+
+        args = vars(self._opt)
+
+        # print in terminal args
+        self._print(args)
+
+        # save args to file
+        self._save(args)
+
+        return self._opt
