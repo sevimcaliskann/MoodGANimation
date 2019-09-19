@@ -55,7 +55,7 @@ class BaseOptions():
 
         # set and check load_epoch
         self._opt.load_epoch = self._set_and_check_load_epoch(self._opt.name, self._opt.load_epoch)
-        self._opt.comparison_load_epoch = self._set_and_check_load_epoch(self._opt.comparison_model_name, self._opt.comparison_load_epoch)
+        #self._opt.comparison_load_epoch = self._set_and_check_load_epoch(self._opt.comparison_model_name, self._opt.comparison_load_epoch)
 
         # get and set gpus
         self._get_set_gpus()
