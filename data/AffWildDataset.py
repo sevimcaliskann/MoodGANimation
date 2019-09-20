@@ -80,6 +80,10 @@ class AffWildDataset(DatasetBase):
         self._ids = self._read_ids(use_ids_filepath)
         print('#data: ', len(self._ids))
 
+        moods_file = self._opt.train_info_file if self._is_for_train else self._opt.test_info_file
+        if self._opt.cond_nc>2:
+            self._moods = pickle.load(open(moods_file, 'rb'))
+
         # dataset size
         self._dataset_size = len(self._ids)
 
@@ -107,7 +111,10 @@ class AffWildDataset(DatasetBase):
         end = start + cnt
 
         frame_ids = data.keys()[start:end]
-        annotations = np.array([data[id] for id in frame_ids])
+        if self._opt.cond_nc==2:
+            annotations = np.array([data[id] for id in frame_ids])
+        elif self._opt.cond_nc>2:
+            annotations = np.array([self._moods[id.split('/')[-1][:-4]] for id in frame_ids])
         return annotations, frame_ids
 
 
