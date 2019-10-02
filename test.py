@@ -40,7 +40,7 @@ class MorphFacesInTheWild:
                                               transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                                                    std=[0.5, 0.5, 0.5])
                                               ])
-        self._moods = get_moods_from_pickle(self._opt.moods_pickle_file)
+        self._moods = get_moods_from_pickle(self._opt.moods_pickle_file, self._opt.cond_nc)
 
     def _img_morph(self, img, expression, label='concat'):
         face = self.crop_face(img)
@@ -100,8 +100,9 @@ class MorphFacesInTheWild:
 
         third = np.expand_dims(np.zeros(self._opt.frames_cnt), axis=1)
         fourth = np.expand_dims(-1*np.ones(self._opt.frames_cnt), axis=1)
-        expression = np.concatenate((val,third, third, fourth), axis=1)
-        #expression = np.concatenate((aro,val), axis=1)
+        #expression = np.concatenate((val,third, third, fourth), axis=1)
+        expression = np.concatenate((aro,val), axis=1) if self._opt.cond_nc == 2 else \
+                        np.concatenate((val,third, third, fourth), axis=1)
 
         traj = animate_traj(expression, self._out_dir)
         if not get_start_from_video:
@@ -167,14 +168,16 @@ class MorphFacesInTheWild:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # close for cropped_28_01
         cv2.imwrite(filepath, img)
 
-def get_moods_from_pickle(path):
+def get_moods_from_pickle(path, cond_nc):
     data = pickle.load(open(path, 'rb'))
-    '''moods = dict()
-    for key, val in data.items():
-        key = key.split('/')[-1][:-4]
-        moods[key] = val
-    return moods'''
-    return data
+    if cond_nc==2:
+        moods = dict()
+        for key, val in data.items():
+            key = key.split('/')[-1][:-4]
+            moods[key] = val
+        return moods
+    else:
+        return data
 
 def animate_traj(exp, save_path):
     fig = plt.figure(figsize=(10,10))
@@ -222,14 +225,26 @@ def main():
     print('BEGINING')
     opt = TestOptions().parse()
     morph = MorphFacesInTheWild(opt)
-    #morph.random_generation(False)
-    img, expression = morph.generate_from_groundtruth()
+    morph.random_generation(False)
+    #img, expression = morph.generate_from_groundtruth()
 
-    morph = MorphFacesInTheWild(opt, is_comparison=True)
-    morph.morph_file(opt.groundtruth_video, expression, img=img)
-    morph.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs_masked', img=img)
-    morph.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs', img=img)
-    morph.morph_and_tile(opt.groundtruth_video, expression, 'img_mask', img=img)
+    #morph = MorphFacesInTheWild(opt, is_comparison=True)
+    #morph.morph_file(opt.groundtruth_video, expression, img=img)
+    #morph.random_generation(False)
+
+
+    #opt.name = 'maximize_mask_no_cycle'
+    #opt.load_epoch = 50
+    #opt.recurrent=False
+    #opt.moods_pickle_file = '/home/sevim/Downloads/master_thesis_study_documents/code-examples/affwild/annotations/384_4d.pkl'
+    #opt.cond_nc = 4
+    #morph = MorphFacesInTheWild(opt, is_comparison=False)
+    #morph.morph_file(opt.groundtruth_video, expression, img=img)
+    #morph.random_generation(False)
+    #morph.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs_masked', img=img)
+    #morph.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs', img=img)
+    #morph.morph_and_tile(opt.groundtruth_video, expression, 'img_mask', img=img)
+    #morph.random_generation(False)
 
 
 
