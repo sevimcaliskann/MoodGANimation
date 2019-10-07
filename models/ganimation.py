@@ -142,14 +142,9 @@ class GANimation(BaseModel):
             fake_videos_masked = list()
             for idx in range(1, self._opt.frames_cnt):
                 real_cond = Variable(self._input_annotations[:, idx, :], volatile=True)
-                if not self._opt.recurrent or fake_imgs_masked is None:
-                    fake_imgs, fake_img_mask, feats = self._G.forward(first_frame, real_cond)
-                    fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                    fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
-                else:
-                    fake_imgs, fake_img_mask, feats = self._G.forward(fake_imgs_masked, real_cond, feats)
-                    fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                    fake_imgs_masked = fake_img_mask * fake_imgs_masked .detach()+ (1 - fake_img_mask) * fake_imgs
+                fake_imgs, fake_img_mask, feats = self._G.forward(first_frame, real_cond, feats)
+                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
                 fake_videos_masked.append(fake_imgs_masked)
                 fake_mask_videos.append(fake_img_mask)
                 fake_videos.append(fake_imgs)
@@ -266,14 +261,9 @@ class GANimation(BaseModel):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            if not self._opt.recurrent or fake_imgs_masked is None:
-                fake_imgs, fake_img_mask, feats = self._G.forward(self._first, real_cond)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
-            else:
-                fake_imgs, fake_img_mask, feats = self._G.forward(fake_imgs_masked, real_cond, feats)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * fake_imgs_masked.detach() + (1 - fake_img_mask) * fake_imgs
+            fake_imgs, fake_img_mask, feats = self._G.forward(self._first, real_cond, feats)
+            fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+            fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
             d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
             self._loss_g_masked_fake += self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
@@ -321,14 +311,9 @@ class GANimation(BaseModel):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            if not self._opt.recurrent or fake_imgs_masked is None:
-                fake_imgs, fake_img_mask, feats = self._G.forward(self._first, real_cond)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
-            else:
-                fake_imgs, fake_img_mask, feats = self._G.forward(fake_imgs_masked, real_cond, feats)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * fake_imgs_masked.detach() + (1 - fake_img_mask) * fake_imgs
+            fake_imgs, fake_img_mask, feats = self._G.forward(self._first, real_cond, feats)
+            fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+            fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
 
             d_real_img_prob, d_real_img_cond = self._D.forward(real_img)
