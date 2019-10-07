@@ -57,8 +57,10 @@ class Generator(NetworkBase):
         x = torch.cat([x, c], dim=1)
 
         conv1_out = self.conv1(x)
+        print('before: ', conv1_out.size())
         conv1_out = torch.cat([conv1_out, feats['conv1_out']], dim = 1) if feats is not None \
                     else torch.cat([conv1_out, torch.randn(conv1_out.size()).cuda()], dim = 1)
+        print('after: ', conv1_out.size())
         conv2_out = self.conv2(conv1_out)
         conv2_out = torch.cat([conv2_out, feats['conv2_out']], dim = 1) if feats is not None \
                     else torch.cat([conv2_out, torch.randn(conv2_out.size()).cuda()], dim = 1)
