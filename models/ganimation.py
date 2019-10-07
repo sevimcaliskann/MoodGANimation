@@ -231,11 +231,10 @@ class GANimation(BaseModel):
             self._optimizer_D.step()
 
             loss_D_gp = 0
+            feats = None
             for i in range(fake_vids_masked.size(1)):
-                if i==0:
-                    loss_D_gp += self._gradinet_penalty_D(self._first, fake_vids_masked[:, i, :, :, :])
-                else:
-                    loss_D_gp += self._gradinet_penalty_D(fake_vids_masked[:, i-1, :, :, :], fake_vids_masked[:, i, :, :, :])
+                loss_D_inc, feats= self._gradinet_penalty_D(self._first, fake_vids_masked[:, i, :, :, :], feats)
+                loss_D_gp += loss_D_inc
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
@@ -257,6 +256,7 @@ class GANimation(BaseModel):
 
 
         fake_imgs_masked = None
+        feats_fake = None
         fake_videos = list()
         fake_mask_videos = list()
         fake_videos_masked = list()
@@ -264,16 +264,11 @@ class GANimation(BaseModel):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            if not self._opt.recurrent or fake_imgs_masked is None:
-                fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
-            else:
-                fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * fake_imgs_masked.detach() + (1 - fake_img_mask) * fake_imgs
+            fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
+            fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+            fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
-            d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D.forward(fake_imgs_masked)
+            d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond, feats_fake = self._D.forward(fake_imgs_masked, feats_fake)
             self._loss_g_masked_fake += self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
             self._loss_g_masked_cond += self._criterion_D_cond(d_fake_desired_img_masked_cond, real_cond) / self._B * self._opt.lambda_D_cond
             self._loss_g_cyc += self._criterion_cycle(fake_imgs_masked, real_img) * self._opt.lambda_cyc
@@ -313,26 +308,23 @@ class GANimation(BaseModel):
         self._loss_d_cond = 0
         self._loss_d_fake = 0
         fake_imgs_masked = None
+        feats_real = None
+        feats_fake = None
         fake_videos_masked = list()
         for idx in range(1, self._opt.frames_cnt):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            if not self._opt.recurrent or fake_imgs_masked is None:
-                fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
-            else:
-                fake_imgs, fake_img_mask = self._G.forward(fake_imgs_masked, real_cond)
-                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                fake_imgs_masked = fake_img_mask * fake_imgs_masked.detach() + (1 - fake_img_mask) * fake_imgs
+            fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
+            fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+            fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
 
-            d_real_img_prob, d_real_img_cond = self._D.forward(real_img)
+            d_real_img_prob, d_real_img_cond, feats_real = self._D.forward(real_img, feats_real)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
             self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, real_cond) / self._B * self._opt.lambda_D_cond
             # D(fake_I)
-            d_fake_desired_img_prob, _ = self._D.forward(fake_imgs_masked.detach())
+            d_fake_desired_img_prob, _, feats_fake = self._D.forward(fake_imgs_masked.detach(), feats_fake)
             self._loss_d_fake += self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
             fake_videos_masked.append(fake_imgs_masked)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
@@ -341,12 +333,12 @@ class GANimation(BaseModel):
         return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_videos_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
-    def _gradinet_penalty_D(self, prev, fake_imgs_masked):
+    def _gradinet_penalty_D(self, prev, fake_imgs_masked, feats=None):
         #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # interpolate sample
         alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._first_frame)
         interpolated = Variable(alpha * prev.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
-        interpolated_prob, _ = self._D(interpolated)
+        interpolated_prob, _, feats = self._D.forward(interpolated, feats)
 
         # compute gradients
         grad = torch.autograd.grad(outputs=interpolated_prob,
@@ -361,7 +353,7 @@ class GANimation(BaseModel):
         grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
         self._loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
 
-        return self._loss_d_gp
+        return self._loss_d_gp, feats
 
     def _compute_loss_D(self, estim, is_real):
         return -torch.mean(estim) if is_real else torch.mean(estim)
