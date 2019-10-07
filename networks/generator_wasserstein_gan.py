@@ -57,23 +57,21 @@ class Generator(NetworkBase):
         x = torch.cat([x, c], dim=1)
 
         conv1_out = self.conv1(x)
-        print('before: ', conv1_out.size())
-        conv1_out = torch.cat([conv1_out, feats['conv1_out']], dim = 1) if feats is not None \
+        conv1_out_cat = torch.cat([conv1_out, feats['conv1_out']], dim = 1) if feats is not None \
                     else torch.cat([conv1_out, torch.randn(conv1_out.size()).cuda()], dim = 1)
-        print('after: ', conv1_out.size())
-        conv2_out = self.conv2(conv1_out)
-        conv2_out = torch.cat([conv2_out, feats['conv2_out']], dim = 1) if feats is not None \
+        conv2_out = self.conv2(conv1_out_cat)
+        conv2_out_cat = torch.cat([conv2_out, feats['conv2_out']], dim = 1) if feats is not None \
                     else torch.cat([conv2_out, torch.randn(conv2_out.size()).cuda()], dim = 1)
-        conv3_out = self.conv3(conv2_out)
+        conv3_out = self.conv3(conv2_out_cat)
         residual_out = self.residual(conv3_out)
-        residual_out = torch.cat([residual_out, feats['residual_out']], dim = 1) if feats is not None \
+        residual_out_cat = torch.cat([residual_out, feats['residual_out']], dim = 1) if feats is not None \
                         else torch.cat([residual_out, torch.randn(residual_out.size()).cuda()], dim = 1)
 
 
-        deconv1_out = self.deconv1(residual_out)
-        deconv1_out = torch.cat([deconv1_out, feats['deconv1_out']], dim = 1) if feats is not None \
+        deconv1_out = self.deconv1(residual_out_cat)
+        deconv1_out_cat = torch.cat([deconv1_out, feats['deconv1_out']], dim = 1) if feats is not None \
                         else torch.cat([deconv1_out, torch.randn(deconv1_out.size()).cuda()], dim = 1)
-        deconv2_out = self.deconv2(deconv1_out)
+        deconv2_out = self.deconv2(deconv1_out_cat)
         feats = {'conv1_out':conv1_out, \
                  'conv2_out':conv2_out, \
                  'residual_out':residual_out, \
