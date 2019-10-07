@@ -62,7 +62,7 @@ class Generator(NetworkBase):
         conv2_out = self.conv2(conv1_out)
         conv2_out = torch.cat([conv2_out, feats['conv2_out']], dim = 1) if feats is not None \
                     else torch.cat([conv2_out, torch.randn(conv2_out.size()).cuda()], dim = 1)
-        conv3_out = self.conv3(conv3_out)
+        conv3_out = self.conv3(conv2_out)
         residual_out = self.residual(conv3_out)
         residual_out = torch.cat([residual_out, feats['residual_out']], dim = 1) if feats is not None \
                         else torch.cat([residual_out, torch.randn(residual_out.size()).cuda()], dim = 1)
