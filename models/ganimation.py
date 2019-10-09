@@ -60,6 +60,7 @@ class GANimation(BaseModel):
         # initialize optimizers
         self._optimizer_G = torch.optim.Adam(self._G.parameters(), lr=self._current_lr_G,
                                              betas=[self._opt.G_adam_b1, self._opt.G_adam_b2])
+        print('checking real parameters size: ', len(list(self._D.parameters())))
         self._optimizer_D = torch.optim.Adam(self._D.get_parameters(), lr=self._current_lr_D,
                                              betas=[self._opt.D_adam_b1, self._opt.D_adam_b2])
 
