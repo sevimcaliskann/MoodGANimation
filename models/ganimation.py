@@ -63,6 +63,7 @@ class GANimation(BaseModel):
                                              betas=[self._opt.D_adam_b1, self._opt.D_adam_b2])
 
     def _init_prefetch_inputs(self):
+        print('self tensor: ', self._Tensor)
         self._input_frames = self._Tensor(self._opt.batch_size, self._opt.frames_cnt, 3, self._opt.image_size, self._opt.image_size)
         self._input_annotations = self._Tensor(self._opt.batch_size, self._opt.frames_cnt, self._opt.cond_nc)
         #self._input_desired_cond = self._Tensor(self._opt.batch_size, self._opt.cond_nc)
