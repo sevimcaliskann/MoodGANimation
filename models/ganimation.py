@@ -44,8 +44,8 @@ class GANimation(BaseModel):
         self._D.init_weights()
         if len(self._gpu_ids) > 1:
             self._D = torch.nn.DataParallel(self._D, device_ids=self._gpu_ids[0])
-        self._D.cuda()
-        
+        self._D.carry_to_cuda()
+
 
     def _create_generator(self):
         return NetworksFactory.get_by_name('generator_wasserstein_gan', c_dim=self._opt.cond_nc+3)
