@@ -70,6 +70,7 @@ class GANimation(BaseModel):
         #self._input_target_frame = self._Tensor(self._opt.batch_size, 3, self._opt.image_size, self._opt.image_size)
         self._first_frame = self._Tensor(self._opt.batch_size, 3, self._opt.image_size, self._opt.image_size)
         self._first_ann = self._Tensor(self._opt.batch_size, 1, self._opt.cond_nc)
+        print('first frame type: ', type(self._first_frame))
         #self._input_real_cond_path = None
 
     def _init_losses(self):
@@ -110,7 +111,6 @@ class GANimation(BaseModel):
         self._first_frame.resize_(input['first_frame'].size()).copy_(input['first_frame'])
         self._first_ann.resize_(input['first_ann'].size()).copy_(input['first_ann'])
         #self._input_cond_id = input['cond_id']
-        print('torch cuda is available: ', torch.cuda.is_available())
 
         if len(self._gpu_ids) > 0:
             self._input_frames = self._input_frames.cuda(self._gpu_ids[0], async=True)
@@ -119,7 +119,7 @@ class GANimation(BaseModel):
             self._first_frame = self._first_frame.cuda(self._gpu_ids[0], async=True)
             self._first_ann = self._first_ann.cuda(self._gpu_ids[0], async=True)
             #self._input_desired_cond = self._input_desired_cond.cuda(self._gpu_ids[0], async=True)
-            print('first frame type: ', type(self._first_frame))
+
 
     def set_train(self):
         self._G.train()
