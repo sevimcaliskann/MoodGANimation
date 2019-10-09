@@ -41,3 +41,15 @@ class Discriminator(NetworkBase):
             layer.cuda()
         self.conv1.cuda()
         self.conv2.cuda()
+
+    def get_parameters(self):
+        params = list(self.feat_layers[0].parameters())
+        print('params size: ', len(params))
+        for idx in range(1, len(self.feat_layers)):
+            params += list(self.feat_layers[idx].parameters())
+            print('params size: ', len(params))
+        params += list(self.conv1.parameters())
+        print('params size: ', len(params))
+        params += list(self.conv2.parameters())
+        print('params size: ', len(params))
+        return params

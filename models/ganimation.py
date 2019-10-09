@@ -60,7 +60,7 @@ class GANimation(BaseModel):
         # initialize optimizers
         self._optimizer_G = torch.optim.Adam(self._G.parameters(), lr=self._current_lr_G,
                                              betas=[self._opt.G_adam_b1, self._opt.G_adam_b2])
-        self._optimizer_D = torch.optim.Adam(self._D.parameters(), lr=self._current_lr_D,
+        self._optimizer_D = torch.optim.Adam(self._D.get_parameters(), lr=self._current_lr_D,
                                              betas=[self._opt.D_adam_b1, self._opt.D_adam_b2])
 
     def _init_prefetch_inputs(self):
