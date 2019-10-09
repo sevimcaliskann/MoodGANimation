@@ -1,6 +1,7 @@
 import torch.nn as nn
 import numpy as np
 from .networks import NetworkBase
+import torch
 
 class Discriminator(NetworkBase):
     """Discriminator. PatchGAN."""
@@ -23,10 +24,6 @@ class Discriminator(NetworkBase):
         self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=k_size, bias=False)
 
     def forward(self, x, feats=None):
-        for layer in self.feat_layers:
-            print('layer is on cuda: ', next(layer.parameters()).is_cuda)
-        print('conv1: ', next(self.conv1.parameters()).is_cuda)
-        print('conv2: ', next(self.conv2.parameters()).is_cuda)
         h = self.feat_layers[0](x)
         next_feats = dict()
         for idx in range(1, len(self.feat_layers)):
