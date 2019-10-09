@@ -16,11 +16,11 @@ class Generator(NetworkBase):
 
         # Down-Sampling
         curr_dim = conv_dim
-        self.conv2 = nn.Sequential(nn.Conv2d(2*curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
+        self.conv2 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
                                     nn.InstanceNorm2d(curr_dim*2, affine=True), \
                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim*2
-        self.conv3 = nn.Sequential(nn.Conv2d(2*curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
+        self.conv3 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
                                     nn.InstanceNorm2d(curr_dim*2, affine=True), \
                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim*2
@@ -31,11 +31,11 @@ class Generator(NetworkBase):
             layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
         self.residual = nn.Sequential(*layers)
 
-        self.deconv1 = nn.Sequential(nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
+        self.deconv1 = nn.Sequential(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
                                     nn.InstanceNorm2d(curr_dim//2, affine=True), \
                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim //2
-        self.deconv2 = nn.Sequential(nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
+        self.deconv2 = nn.Sequential(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
                                     nn.InstanceNorm2d(curr_dim//2, affine=True), \
                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim //2
@@ -57,20 +57,20 @@ class Generator(NetworkBase):
         x = torch.cat([x, c], dim=1)
 
         conv1_out = self.conv1(x)
-        conv1_out_cat = torch.cat([conv1_out, feats['conv1_out']], dim = 1) if feats is not None \
-                    else torch.cat([conv1_out, torch.randn(conv1_out.size()).cuda()], dim = 1)
+        conv1_out_cat = torch.mean(torch.stack((conv1_out, feats['conv1_out'])), dim=0) \
+                        if feats is not None else conv1_out
         conv2_out = self.conv2(conv1_out_cat)
-        conv2_out_cat = torch.cat([conv2_out, feats['conv2_out']], dim = 1) if feats is not None \
-                    else torch.cat([conv2_out, torch.randn(conv2_out.size()).cuda()], dim = 1)
+        conv2_out_cat = torch.mean(torch.stack((conv2_out, feats['conv2_out'])), dim=0) \
+                        if feats is not None else conv2_out
         conv3_out = self.conv3(conv2_out_cat)
         residual_out = self.residual(conv3_out)
-        residual_out_cat = torch.cat([residual_out, feats['residual_out']], dim = 1) if feats is not None \
-                        else torch.cat([residual_out, torch.randn(residual_out.size()).cuda()], dim = 1)
+        residual_out_cat = torch.mean(torch.stack((residual_out, feats['residual_out'])), dim = 0) \
+                        if feats is not None else residual_out
 
 
         deconv1_out = self.deconv1(residual_out_cat)
-        deconv1_out_cat = torch.cat([deconv1_out, feats['deconv1_out']], dim = 1) if feats is not None \
-                        else torch.cat([deconv1_out, torch.randn(deconv1_out.size()).cuda()], dim = 1)
+        deconv1_out_cat = torch.mean(torch.stack((deconv1_out, feats['deconv1_out'])), dim = 0) \
+                        if feats is not None else deconv1_out
         deconv2_out = self.deconv2(deconv1_out_cat)
         feats = {'conv1_out':conv1_out, \
                  'conv2_out':conv2_out, \
