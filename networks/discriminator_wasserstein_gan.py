@@ -23,17 +23,13 @@ class Discriminator(NetworkBase):
         self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=k_size, bias=False)
 
     def forward(self, x, feats=None):
-        print('x type: ', type(x))
         h = self.feat_layers[0](x)
-        print('before h type: ', type(h))
         next_feats = dict()
         for idx in range(1, len(self.feat_layers)):
             next_feats[idx] = h
             h_cat = torch.cat([h, feats[idx]], dim=1) if feats is not None \
                     else torch.cat([h, torch.randn(h.size()).cuda()], dim=1)
-            print('h_cat type: ', type(h_cat))
             h = self.feat_layers[idx](h_cat)
-            print('after h type: ', type(h))
 
         out_real = self.conv1(h)
         out_aux = self.conv2(h)

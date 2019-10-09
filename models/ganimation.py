@@ -314,11 +314,13 @@ class GANimation(BaseModel):
         for idx in range(1, self._opt.frames_cnt):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
+            print('real img type: ', type(real_img))
+            print('real cond type: ', type(real_cond))
+            print('first type: ', type(self._first))
 
             fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
-
 
             d_real_img_prob, d_real_img_cond, feats_real = self._D.forward(real_img, feats_real)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
