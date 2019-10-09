@@ -110,6 +110,7 @@ class GANimation(BaseModel):
         self._first_frame.resize_(input['first_frame'].size()).copy_(input['first_frame'])
         self._first_ann.resize_(input['first_ann'].size()).copy_(input['first_ann'])
         #self._input_cond_id = input['cond_id']
+        print('torch cuda is available: ', torch.cuda.is_available())
 
         if len(self._gpu_ids) > 0:
             self._input_frames = self._input_frames.cuda(self._gpu_ids[0], async=True)
@@ -118,6 +119,7 @@ class GANimation(BaseModel):
             self._first_frame = self._first_frame.cuda(self._gpu_ids[0], async=True)
             self._first_ann = self._first_ann.cuda(self._gpu_ids[0], async=True)
             #self._input_desired_cond = self._input_desired_cond.cuda(self._gpu_ids[0], async=True)
+            print('first frame type: ', type(self._first_frame))
 
     def set_train(self):
         self._G.train()
@@ -314,9 +316,6 @@ class GANimation(BaseModel):
         for idx in range(1, self._opt.frames_cnt):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
-            print('real img type: ', type(real_img))
-            print('real cond type: ', type(real_cond))
-            print('first type: ', type(self._first))
 
             fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
