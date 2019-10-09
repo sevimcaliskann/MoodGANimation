@@ -34,7 +34,7 @@ class Discriminator(NetworkBase):
 
         out_real = self.conv1(h)
         out_aux = self.conv2(h)
-        return (out_real.squeeze(), out_aux.squeeze(), new_feats)
+        return (out_real.squeeze(), out_aux.squeeze(), next_feats)
 
     def carry_to_cuda(self):
         for layer in self.feat_layers:
