@@ -24,12 +24,15 @@ class Discriminator(NetworkBase):
 
     def forward(self, x, feats=None):
         h = self.feat_layers[0](x)
+        print('before h type: ', type(h))
         next_feats = dict()
         for idx in range(1, len(self.feat_layers)):
             next_feats[idx] = h
             h_cat = torch.cat([h, feats[idx]], dim=1) if feats is not None \
                     else torch.cat([h, torch.randn(h.size()).cuda()], dim=1)
+            print('h_cat type: ', type(h_cat))
             h = self.feat_layers[idx](h_cat)
+            print('after h type: ', type(h))
 
         out_real = self.conv1(h)
         out_aux = self.conv2(h)
