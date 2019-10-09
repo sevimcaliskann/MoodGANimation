@@ -78,14 +78,6 @@ class Generator(NetworkBase):
                  'deconv1_out':deconv1_out}
         return self.img_reg(deconv2_out), self.attetion_reg(deconv2_out), feats
 
-    def get_parameters(self):
-        params = list(self.conv1.parameters()) + list(self.conv1.parameters()) + list(self.conv1.parameters()) + \
-                 list(self.residual.parameters()) + \
-                 list(self.deconv1.parameters()) + list(self.deconv2.parameters()) + \
-                 list(self.img_reg.parameters()) + list(self.attetion_reg.parameters())
-        print('params size: ', len(params))
-        return params
-
 class ResidualBlock(nn.Module):
     """Residual Block."""
     def __init__(self, dim_in, dim_out):
