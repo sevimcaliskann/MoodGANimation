@@ -57,7 +57,7 @@ class GANimation(BaseModel):
         self._current_lr_D = self._opt.lr_D
 
         # initialize optimizers
-        print('original size: ', len(self._G.parameters()))
+        print('original size: ', len(list(self._G.parameters())))
         self._optimizer_G = torch.optim.Adam(self._G.get_parameters(), lr=self._current_lr_G,
                                              betas=[self._opt.G_adam_b1, self._opt.G_adam_b2])
         self._optimizer_D = torch.optim.Adam(self._D.parameters(), lr=self._current_lr_D,
