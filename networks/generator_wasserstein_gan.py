@@ -9,6 +9,69 @@ class Generator(NetworkBase):
         super(Generator, self).__init__()
         self._name = 'generator_wgan'
 
+        layers = []
+        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
+        layers.append(nn.ReLU(inplace=True))
+
+        # Down-Sampling
+        curr_dim = conv_dim
+        for i in range(2):
+            layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
+            layers.append(nn.ReLU(inplace=True))
+            curr_dim = curr_dim * 2
+
+        # Bottleneck
+        for i in range(repeat_num):
+            layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+
+        # Up-Sampling
+        for i in range(2):
+            layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
+            layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
+            layers.append(nn.ReLU(inplace=True))
+            curr_dim = curr_dim // 2
+
+        self.main = nn.Sequential(*layers)
+
+        layers = []
+        layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.Tanh())
+        self.img_reg = nn.Sequential(*layers)
+
+        layers = []
+        layers.append(nn.Conv2d(curr_dim, 1, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.Sigmoid())
+        self.attetion_reg = nn.Sequential(*layers)
+
+
+    def forward(self, x, c, feats = None):
+        # replicate spatially and concatenate domain information
+        c = c.unsqueeze(2).unsqueeze(3)
+        c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
+        x = torch.cat([x, c], dim=1)
+
+        count = 0
+        new_feats = list()
+        inp = x
+        for layer in self.main:
+            out = layer(inp)
+            new_feats.append(out)
+            inp = torch.mean(torch.stack((out, feats[count])), dim=0) \
+                            if feats is not None else out
+            count += 1
+        return self.img_reg(inp), self.attetion_reg(inp), new_feats
+
+
+
+
+
+
+    '''def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
+        super(Generator, self).__init__()
+        self._name = 'generator_wgan'
+
 
         self.conv1 = nn.Sequential(nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False),\
                                     nn.InstanceNorm2d(conv_dim, affine=True), \
@@ -76,7 +139,7 @@ class Generator(NetworkBase):
                  'conv2_out':conv2_out, \
                  'residual_out':residual_out, \
                  'deconv1_out':deconv1_out}
-        return self.img_reg(deconv2_out), self.attetion_reg(deconv2_out), feats
+        return self.img_reg(deconv2_out), self.attetion_reg(deconv2_out), feats'''
 
 class ResidualBlock(nn.Module):
     """Residual Block."""
