@@ -15,8 +15,13 @@ class Discriminator(NetworkBase):
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
-            self.feat_layers.append(nn.Sequential(nn.Conv2d(2*curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
+            if i <=repeat_num/2:
+                self.feat_layers.append(nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
                                              nn.LeakyReLU(0.01, inplace=True)))
+            else:
+                self.feat_layers.append(nn.Sequential(nn.Conv2d(2*curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
+                                             nn.LeakyReLU(0.01, inplace=True)))
+
             curr_dim = curr_dim * 2
 
         k_size = int(image_size / np.power(2, repeat_num))
@@ -27,10 +32,13 @@ class Discriminator(NetworkBase):
         h = self.feat_layers[0](x)
         next_feats = dict()
         for idx in range(1, len(self.feat_layers)):
-            next_feats[idx] = h
-            h_cat = torch.cat([h, feats[idx]], dim=1) if feats is not None \
+            if idx<= len(self.feat_layers)/2:
+                h = self.feat_layers[idx](h)
+            else:
+                next_feats[idx] = h
+                h_cat = torch.cat([h, feats[idx]], dim=1) if feats is not None \
                     else torch.cat([h, torch.randn(h.size()).cuda()], dim=1)
-            h = self.feat_layers[idx](h_cat)
+                h = self.feat_layers[idx](h_cat)
 
         out_real = self.conv1(h)
         out_aux = self.conv2(h)
