@@ -44,7 +44,7 @@ class GANimation(BaseModel):
         self._D.init_weights()
         if len(self._gpu_ids) > 1:
             self._D = torch.nn.DataParallel(self._D, device_ids=self._gpu_ids[0])
-        self._D.carry_to_cuda()
+        self._D.cuda()
 
 
     def _create_generator(self):
@@ -60,7 +60,7 @@ class GANimation(BaseModel):
         # initialize optimizers
         self._optimizer_G = torch.optim.Adam(self._G.parameters(), lr=self._current_lr_G,
                                              betas=[self._opt.G_adam_b1, self._opt.G_adam_b2])
-        self._optimizer_D = torch.optim.Adam(self._D.get_parameters(), lr=self._current_lr_D,
+        self._optimizer_D = torch.optim.Adam(self._D.parameters(), lr=self._current_lr_D,
                                              betas=[self._opt.D_adam_b1, self._opt.D_adam_b2])
 
     def _init_prefetch_inputs(self):
