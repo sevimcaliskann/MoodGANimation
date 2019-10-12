@@ -35,7 +35,6 @@ class Discriminator(NetworkBase):
         k_size = int(image_size / np.power(2, repeat_num))
         feat_layers.append(Flatten())
         self.main = nn.Sequential(*feat_layers)
-
         self.gru = nn.GRU(curr_dim*k_size*k_size, hidden_size=128, num_layers = 2, batch_first=True )
 
 
