@@ -37,7 +37,7 @@ class Discriminator(NetworkBase):
         feat_layers.append(Flatten())
         self.main = nn.Sequential(*feat_layers)
 
-        self.gru = nn.GRU(curr_dim, hidden_size=128, num_layers = 2, batch_first=True )
+        self.gru = nn.GRU(curr_dim*k_size*k_size, hidden_size=128, num_layers = 2, batch_first=True )
 
 
         self.lin1 = nn.Linear(128, 1)
