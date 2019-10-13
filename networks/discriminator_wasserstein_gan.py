@@ -36,7 +36,7 @@ class Discriminator(NetworkBase):
         feat_layers.append(Flatten())
         self.main = nn.Sequential(*feat_layers)
 
-        self.gru = nn.GRU(curr_dim*k_size*k_size, hidden_size=128, num_layers = 2, batch_first=True )
+        self.gru = nn.GRU(curr_dim, hidden_size=128, num_layers = 2, batch_first=True )
 
 
         self.lin1 = nn.Linear(128, 1)
@@ -45,11 +45,11 @@ class Discriminator(NetworkBase):
     def forward(self, x, hidden=None):
         h = self.main(x)
         if hidden is None:
-            hidden=torch.randn(h.size()).cuda()
-        hidden, _ = self.gru(h, hidden)
+            hidden=torch.randn(2, h.size(0), 128).cuda()
+        out, hidden = self.gru(h, hidden)
 
-        out_real = self.lin1(hidden)
-        out_aux = self.lin2(hidden)
+        out_real = self.lin1(out.squeeze())
+        out_aux = self.lin2(out.squeeze())
         return (out_real.squeeze(), out_aux.squeeze(), hidden)
 
     def load_from_checkpoint(self, save_dir, epoch_label):
