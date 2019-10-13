@@ -21,7 +21,7 @@ class Generator(NetworkBase):
 
         # Down-Sampling
         curr_dim = conv_dim
-        for i in range(7):
+        for i in range(5):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
             layers.append(nn.ReLU(inplace=True))
@@ -32,11 +32,11 @@ class Generator(NetworkBase):
         # Bottleneck
         layers.append(Flatten())
         self.encode = nn.Sequential(*layers)
-        self.gru = nn.GRU(curr_dim, hidden_size=curr_dim, num_layers = 2 )
+        self.gru = nn.GRU(curr_dim*16, hidden_size=curr_dim*16, num_layers = 2 )
 
         # Up-Sampling
         layers = []
-        for i in range(7):
+        for i in range(5):
             layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
             layers.append(nn.ReLU(inplace=True))
@@ -65,7 +65,7 @@ class Generator(NetworkBase):
         if hidden is None:
             hidden = torch.randn(encoded.size(0)*2, encoded.size(1), encoded.size(2)).cuda()
         out, hidden = self.gru(encoded, hidden)
-        out = out.view(out.size(1), -1, 1, 1)
+        out = out.view(out.size(1), -1, 4, 4)
 
         decoded = self.decode(out)
 
