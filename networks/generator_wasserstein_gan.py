@@ -8,6 +8,11 @@ class Flatten(nn.Module):
         x = x.view(1, x.size()[0], -1)
         return x
 
+class Deflatten(nn.Module):
+    def forward(self, x):
+        x = x.view(x.size(1), -1, 4, 4)
+        return x
+
 class Generator(NetworkBase):
     """Generator. Encoder-Decoder Architecture."""
     def __init__(self, conv_dim=8, c_dim=5, repeat_num=6):
@@ -31,7 +36,7 @@ class Generator(NetworkBase):
 
         # Bottleneck
         layers.append(Flatten())
-        self.encode = nn.Sequential(*layers)
+        self.main = nn.Sequential(*layers)
         self.gru = nn.GRU(curr_dim*16, hidden_size=curr_dim*16, num_layers = 2 )
 
         # Up-Sampling
@@ -61,7 +66,7 @@ class Generator(NetworkBase):
         c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
 
-        encoded = self.encode(x)
+        encoded = self.main(x)
         if hidden is None:
             hidden = torch.randn(encoded.size(0)*2, encoded.size(1), encoded.size(2)).cuda()
         out, hidden = self.gru(encoded, hidden)
@@ -70,6 +75,17 @@ class Generator(NetworkBase):
         decoded = self.decode(out)
 
         return self.img_reg(decoded), self.attetion_reg(decoded), hidden
+
+
+    def load_from_checkpoint(self, save_dir, epoch_label):
+        load_filename = 'net_epoch_%s_id_G.pth' % (epoch_label)
+        load_path = os.path.join(save_dir, load_filename)
+        state_dict = torch.load(load_path, map_location='cuda:0')
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            own_state[name].copy_(param)
 
 
 
