@@ -2,6 +2,7 @@ import torch.nn as nn
 import numpy as np
 from .networks import NetworkBase
 import torch
+import os
 
 class Flatten(nn.Module):
     def forward(self, x):
