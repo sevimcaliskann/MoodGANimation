@@ -32,7 +32,7 @@ class Generator(NetworkBase):
         # Bottleneck
         layers.append(Flatten())
         self.encode = nn.Sequential(*layers)
-        self.gru = nn.GRU(curr_dim, hidden_size=curr_dim, num_layers = 2, batch_first=True )
+        self.gru = nn.GRU(curr_dim, hidden_size=curr_dim, num_layers = 2 )
 
         # Up-Sampling
         layers = []
@@ -63,7 +63,7 @@ class Generator(NetworkBase):
 
         encoded = self.encode(x)
         if hidden is None:
-            hidden = torch.randn(encoded.size(0)*2, encoded.size(1), encoded.size(2)).cuda()
+            hidden = torch.randn(encoded.size(1)*2, encoded.size(0), encoded.size(2)).cuda()
         out, hidden = self.gru(encoded, hidden)
         decoded = self.decode(out.squeeze())
 
