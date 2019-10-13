@@ -34,10 +34,6 @@ class Generator(NetworkBase):
         self.encode = nn.Sequential(*layers)
         self.gru = nn.GRU(curr_dim, hidden_size=curr_dim, num_layers = 2, batch_first=True )
 
-        #for i in range(repeat_num):
-            #layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
-
-
         # Up-Sampling
         layers = []
         for i in range(7):
@@ -67,7 +63,7 @@ class Generator(NetworkBase):
 
         encoded = self.encode(x)
         if hidden is None:
-            hidden = torch.randn(encoded.size()).cuda()
+            hidden = torch.randn(encoded.size(0)*2, encoded.size(1), encoded.size(2)).cuda()
         hidden, _ = self.gru(encoded, hidden)
         decoded = self.decode(hidden.squeeze())
 
