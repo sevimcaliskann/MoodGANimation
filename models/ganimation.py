@@ -436,8 +436,8 @@ class GANimation(BaseModel):
             self._D.load_from_checkpoint(self._save_dir, load_epoch)
 
             # load optimizers
-            self._load_optimizer(self._optimizer_G, 'G', load_epoch)
-            self._load_optimizer(self._optimizer_D, 'D', load_epoch)
+            #self._load_optimizer(self._optimizer_G, 'G', load_epoch)
+            #self._load_optimizer(self._optimizer_D, 'D', load_epoch)
 
     def update_learning_rate(self):
         # updated learning rate G

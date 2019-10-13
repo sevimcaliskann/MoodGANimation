@@ -2,11 +2,12 @@ import torch.nn as nn
 import numpy as np
 from .networks import NetworkBase
 import torch
+import os
 
 
 class Flatten(nn.Module):
     def forward(self, x):
-        x = x.view(x.size()[0], 1, -1)
+        x = x.view(1, x.size()[0], -1)
         return x
 
 class Discriminator(NetworkBase):
