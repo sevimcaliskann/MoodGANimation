@@ -64,8 +64,8 @@ class Generator(NetworkBase):
         encoded = self.encode(x)
         if hidden is None:
             hidden = torch.randn(encoded.size(0)*2, encoded.size(1), encoded.size(2)).cuda()
-        hidden, _ = self.gru(encoded, hidden)
-        decoded = self.decode(hidden.squeeze())
+        out, hidden = self.gru(encoded, hidden)
+        decoded = self.decode(out.squeeze())
 
         return self.img_reg(decoded), self.attetion_reg(decoded), hidden
 
