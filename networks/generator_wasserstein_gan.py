@@ -30,7 +30,7 @@ class Generator(NetworkBase):
         ## feature map sizes are 32x32
 
         # Bottleneck
-        #layers.append(Flatten())
+        layers.append(Flatten())
         self.encode = nn.Sequential(*layers)
         self.gru = nn.GRU(curr_dim, hidden_size=curr_dim, num_layers = 2 )
 
@@ -65,7 +65,7 @@ class Generator(NetworkBase):
         if hidden is None:
             hidden = torch.randn(encoded.size(0)*2, encoded.size(1), encoded.size(2)).cuda()
         out, hidden = self.gru(encoded, hidden)
-        out = torch.unsqueeze(torch.transpose(out, 0, 1), dim=1)
+        out = out.view(out.size(1), -1, 1, 1)
 
         decoded = self.decode(out)
 
