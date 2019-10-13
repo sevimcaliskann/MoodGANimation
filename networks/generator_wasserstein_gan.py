@@ -16,7 +16,7 @@ class Deflatten(nn.Module):
 
 class Generator(NetworkBase):
     """Generator. Encoder-Decoder Architecture."""
-    def __init__(self, conv_dim=8, c_dim=5, repeat_num=6):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
         self._name = 'generator_wgan'
 
