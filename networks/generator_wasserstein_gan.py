@@ -2,6 +2,7 @@ import torch.nn as nn
 import numpy as np
 from .networks import NetworkBase
 import torch
+from .convgru import ConvGRU
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -15,7 +16,7 @@ class Deflatten(nn.Module):
 
 class Generator(NetworkBase):
     """Generator. Encoder-Decoder Architecture."""
-    def __init__(self, conv_dim=8, c_dim=5, repeat_num=6):
+    def __init__(self, conv_dim=8, c_dim=5, repeat_num=5):
         super(Generator, self).__init__()
         self._name = 'generator_wgan'
 
@@ -35,9 +36,10 @@ class Generator(NetworkBase):
         ## feature map sizes are 32x32
 
         # Bottleneck
-        layers.append(Flatten())
-        self.encode = nn.Sequential(*layers)
-        self.gru = nn.GRU(curr_dim*4, hidden_size=curr_dim*4, num_layers = 2 )
+        #layers.append(Flatten())
+        self.main = nn.Sequential(*layers)
+        self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=curr_dim,
+                  kernel_sizes=7, n_layers=6)
 
         # Up-Sampling
         layers = []
@@ -66,13 +68,13 @@ class Generator(NetworkBase):
         c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
 
-        encoded = self.encode(x)
+        encoded = self.main(x)
         if hidden is None:
-            hidden = torch.randn(encoded.size(0)*2, encoded.size(1), encoded.size(2)).cuda()
-        out, hidden = self.gru(encoded, hidden)
-        out = out.view(out.size(1), -1, 2, 2)
+            out = self.gru(encoded)
+        else:
+            out = self.gru(encoded, hidden)
 
-        decoded = self.decode(out)
+        decoded = self.decode(out[-1])
 
         return self.img_reg(decoded), self.attetion_reg(decoded), hidden
 
