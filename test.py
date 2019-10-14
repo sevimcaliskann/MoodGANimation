@@ -226,7 +226,7 @@ def main():
     opt = TestOptions().parse()
     morph = MorphFacesInTheWild(opt)
     morph.random_generation(False)
-    #img, expression = morph.generate_from_groundtruth()
+    img, expression = morph.generate_from_groundtruth()
 
     #morph = MorphFacesInTheWild(opt, is_comparison=True)
     #morph.morph_file(opt.groundtruth_video, expression, img=img)
