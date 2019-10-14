@@ -428,16 +428,15 @@ class GANimation(BaseModel):
         load_epoch = self._opt.load_epoch
 
         # load G
-        #self._load_network(self._G, 'G', load_epoch)
-        self._G.load_from_checkpoint(self._save_dir, load_epoch)
+        self._load_network(self._G, 'G', load_epoch)
 
         if self._is_train:
             # load D
             self._load_network(self._D, 'D', load_epoch)
 
             # load optimizers
-            #self._load_optimizer(self._optimizer_G, 'G', load_epoch)
-            #self._load_optimizer(self._optimizer_D, 'D', load_epoch)
+            self._load_optimizer(self._optimizer_G, 'G', load_epoch)
+            self._load_optimizer(self._optimizer_D, 'D', load_epoch)
 
     def update_learning_rate(self):
         # updated learning rate G
