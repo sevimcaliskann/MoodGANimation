@@ -122,6 +122,7 @@ class MorphFacesInTheWild:
         length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
         start = np.random.randint(0, length-self._opt.frames_cnt)
+        print('start face idx: ', start)
         video.set(1, start)
 
         success, start_face = video.read()
@@ -225,8 +226,8 @@ def main():
     print('BEGINING')
     opt = TestOptions().parse()
     morph = MorphFacesInTheWild(opt)
-    morph.random_generation(False)
-    #img, expression = morph.generate_from_groundtruth()
+    #morph.random_generation(False)
+    img, expression = morph.generate_from_groundtruth()
 
     #morph = MorphFacesInTheWild(opt, is_comparison=True)
     #morph.morph_file(opt.groundtruth_video, expression, img=img)
