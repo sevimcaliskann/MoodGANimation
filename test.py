@@ -226,21 +226,21 @@ def main():
     opt = TestOptions().parse()
     morph = MorphFacesInTheWild(opt)
     morph.random_generation(False)
-    #img, expression = morph.generate_from_groundtruth()
+    img, expression = morph.generate_from_groundtruth()
 
-    #morph = MorphFacesInTheWild(opt, is_comparison=True)
-    #morph.morph_file(opt.groundtruth_video, expression, img=img)
-    #morph.random_generation(False)
+    morph = MorphFacesInTheWild(opt, is_comparison=True)
+    morph.morph_file(opt.groundtruth_video, expression, img=img)
+    morph.random_generation(False)
 
 
-    #opt.name = 'maximize_mask_no_cycle'
-    #opt.load_epoch = 50
-    #opt.recurrent=False
+    opt.name = 'maximize_mask_no_cycle'
+    opt.load_epoch = 50
+    opt.recurrent=False
     #opt.moods_pickle_file = '/home/sevim/Downloads/master_thesis_study_documents/code-examples/affwild/annotations/384_4d.pkl'
     #opt.cond_nc = 4
-    #morph = MorphFacesInTheWild(opt, is_comparison=False)
-    #morph.morph_file(opt.groundtruth_video, expression, img=img)
-    #morph.random_generation(False)
+    morph = MorphFacesInTheWild(opt, is_comparison=False)
+    morph.morph_file(opt.groundtruth_video, expression, img=img)
+    morph.random_generation(False)
     #morph.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs_masked', img=img)
     #morph.morph_and_tile(opt.groundtruth_video, expression, 'fake_imgs', img=img)
     #morph.morph_and_tile(opt.groundtruth_video, expression, 'img_mask', img=img)
