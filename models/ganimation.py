@@ -144,14 +144,9 @@ class GANimation(BaseModel):
             fake_videos_masked = list()
             for idx in range(1, self._opt.frames_cnt):
                 real_cond = Variable(self._input_annotations[:, idx, :], volatile=True)
-                if not self._opt.recurrent or fake_imgs_masked is None:
-                    fake_imgs, fake_img_mask, feats_fake = self._G.forward(first_frame, real_cond, feats_fake)
-                    fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                    fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
-                else:
-                    fake_imgs, fake_img_mask, feats_fake = self._G.forward(fake_imgs_masked, real_cond, feats_fake)
-                    fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
-                    fake_imgs_masked = fake_img_mask * fake_imgs_masked .detach()+ (1 - fake_img_mask) * fake_imgs
+                fake_imgs, fake_img_mask, feats_fake = self._G.forward(first_frame, real_cond, feats_fake)
+                fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+                fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
                 fake_videos_masked.append(fake_imgs_masked)
                 fake_mask_videos.append(fake_img_mask)
                 fake_videos.append(fake_imgs)
