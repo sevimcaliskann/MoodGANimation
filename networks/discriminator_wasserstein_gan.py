@@ -46,7 +46,7 @@ class Discriminator(NetworkBase):
 
     def forward(self, x, hidden=None):
         h = self.main(x)
-        out_real = self.adv(out.squeeze())
+        out_real = self.adv(h)
 
         if hidden is None:
             out = self.gru(h)
