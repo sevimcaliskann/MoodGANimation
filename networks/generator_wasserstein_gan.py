@@ -27,7 +27,7 @@ class Generator(NetworkBase):
 
         # Down-Sampling
         curr_dim = conv_dim
-        for i in range(repeat_num):
+        for i in range(2):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
             layers.append(nn.ReLU(inplace=True))
@@ -43,7 +43,7 @@ class Generator(NetworkBase):
 
         # Up-Sampling
         layers = []
-        for i in range(repeat_num):
+        for i in range(2):
             layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
             layers.append(nn.ReLU(inplace=True))
