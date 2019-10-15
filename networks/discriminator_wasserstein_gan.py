@@ -1,6 +1,7 @@
 import torch.nn as nn
 import numpy as np
 from .networks import NetworkBase
+from .convgru import ConvGRU
 import torch
 import os
 
@@ -34,24 +35,26 @@ class Discriminator(NetworkBase):
             curr_dim = curr_dim * 2
 
         k_size = int(image_size / np.power(2, repeat_num))
-        feat_layers.append(Flatten())
+        #feat_layers.append(Flatten())
         self.main = nn.Sequential(*feat_layers)
+        #self.gru1 = ConvGRU(input_size=curr_dim, hidden_sizes=1, kernel_sizes=3, n_layers=1)
+        self.adv = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.gru2 = ConvGRU(input_size=curr_dim, hidden_sizes=c_dim, kernel_sizes=k_size, n_layers=1)
 
-        self.gru = nn.GRU(curr_dim*k_size*k_size, hidden_size=128, num_layers = 2, batch_first=True )
 
 
-        self.lin1 = nn.Linear(128, 1)
-        self.lin2 = nn.Linear(128, c_dim)
 
     def forward(self, x, hidden=None):
         h = self.main(x)
-        if hidden is None:
-            hidden=torch.randn(2, h.size(0), 128).cuda()
-        out, hidden = self.gru(h, hidden)
+        out_real = self.adv(out.squeeze())
 
-        out_real = self.lin1(out.squeeze())
-        out_aux = self.lin2(out.squeeze())
-        return (out_real.squeeze(), out_aux.squeeze(), hidden)
+        if hidden is None:
+            out = self.gru(h)
+        else:
+            out = self.gru(h, hidden)
+        out_aux = out[-1]
+
+        return (out_real.squeeze(), out_aux.squeeze(), out)
 
     def load_from_checkpoint(self, save_dir, epoch_label):
         load_filename = 'net_epoch_%s_id_D.pth' % (epoch_label)
