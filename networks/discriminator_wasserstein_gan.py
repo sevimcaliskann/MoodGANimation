@@ -39,7 +39,7 @@ class Discriminator(NetworkBase):
         self.main = nn.Sequential(*feat_layers)
         #self.gru1 = ConvGRU(input_size=curr_dim, hidden_sizes=1, kernel_sizes=3, n_layers=1)
         self.adv = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.gru2 = ConvGRU(input_size=curr_dim, hidden_sizes=c_dim, kernel_sizes=k_size, n_layers=1)
+        self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=c_dim, kernel_sizes=k_size, n_layers=1)
 
 
 
