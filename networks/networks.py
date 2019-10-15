@@ -36,8 +36,11 @@ class NetworkBase(nn.Module):
 
     def _weights_init_fn(self, m):
         classname = m.__class__.__name__
-        print('classname: ', classname)
-        if classname.find('Conv') != -1:
+        if classname.find('ConvGRUCell')!=-1:
+            return
+        elif classname.find('ConvGRU')!=-1:
+            return
+        elif classname.find('Conv') != -1:
             m.weight.data.normal_(0.0, 0.02)
             if hasattr(m.bias, 'data'):
                 m.bias.data.fill_(0)
