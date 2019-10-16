@@ -20,36 +20,36 @@ class Generator(NetworkBase):
         super(Generator, self).__init__()
         self._name = 'generator_wgan'
 
-        layers = []
-        layers.append(nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
-        layers.append(nn.ReLU(inplace=True))
+        self.first_conv = nn.Sequential([nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False), \
+                                         nn.InstanceNorm2d(conv_dim, affine=True), \
+                                         nn.ReLU(inplace=True)])
 
         # Down-Sampling
         curr_dim = conv_dim
-        for i in range(2):
-            layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
-            layers.append(nn.ReLU(inplace=True))
-            curr_dim = curr_dim * 2
+        self.encode1 = nn.Sequential([nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                      nn.InstanceNorm2d(curr_dim*2, affine=True), \
+                                      nn.ReLU(inplace=True)])
+        curr_dim = curr_dim * 2
 
+        self.encode2 = nn.Sequential([nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                      nn.InstanceNorm2d(curr_dim*2, affine=True), \
+                                      nn.ReLU(inplace=True)])
+        curr_dim = curr_dim * 2
         ## feature map sizes are 32x32
 
         # Bottleneck
         #layers.append(Flatten())
-        self.main = nn.Sequential(*layers)
         self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=curr_dim,
                   kernel_sizes=7, n_layers=6)
 
-        # Up-Sampling
-        layers = []
-        for i in range(2):
-            layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
-            layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            layers.append(nn.ReLU(inplace=True))
-            curr_dim = curr_dim // 2
-
-        self.decode = nn.Sequential(*layers)
+        self.deconv1 = nn.Sequential([nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                      nn.InstanceNorm2d(curr_dim//2, affine=True), \
+                                      nn.ReLU(inplace=True)])
+        curr_dim = curr_dim // 2
+        self.deconv2 = nn.Sequential([nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                      nn.InstanceNorm2d(curr_dim//2, affine=True), \
+                                      nn.ReLU(inplace=True)])
+        curr_dim = curr_dim // 2
 
         layers = []
         layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
@@ -68,15 +68,19 @@ class Generator(NetworkBase):
         c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
 
-        encoded = self.main(x)
+        first = self.first_conv(x)
+        encoded1 = self.encode1(first)
+        encoded2 = self.encode2(encoded1)
         if hidden is None:
-            out = self.gru(encoded)
+            out = self.gru(encoded2)
         else:
-            out = self.gru(encoded, hidden)
+            out = self.gru(encoded2, hidden)
 
-        decoded = self.decode(out[-1])
 
-        return self.img_reg(decoded), self.attetion_reg(decoded), hidden
+        decoded1 = self.deconv1(torch.cat([out[-1], encoded2], dim=1))
+        decoded2 = self.deconv2(torch.cat([decoded1, encoded1], dim=1))
+
+        return self.img_reg(decoded2), self.attetion_reg(decoded2), out
 
 
 
