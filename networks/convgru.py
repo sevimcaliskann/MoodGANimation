@@ -16,9 +16,12 @@ class ConvGRUCell(nn.Module):
         padding = kernel_size // 2
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.reset_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
-        self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
-        self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
+        self.reset_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
+        #self.reset_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
+        self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
+        #self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
+        self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
+        #self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
 
         init.orthogonal_(self.reset_gate.weight)
         init.orthogonal_(self.update_gate.weight)
@@ -46,10 +49,7 @@ class ConvGRUCell(nn.Module):
         stacked_inputs = torch.cat([input_, prev_state], dim=1)
         update = F.sigmoid(self.update_gate(stacked_inputs))
         reset = F.sigmoid(self.reset_gate(stacked_inputs))
-        print('input size: ', input_.size())
-        test = prev_sate*reset
-        print('input size: ', test.size())
-        out_inputs = F.tanh(self.out_gate(torch.cat([input_, prev_state * reset], dim=1)))
+        out_inputs = F.tanh(self.out_gate(torch.cat([input_, prev_state*reset], dim=1)))
         new_state = prev_state * (1 - update) + out_inputs * update
 
         return new_state
