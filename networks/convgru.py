@@ -16,12 +16,12 @@ class ConvGRUCell(nn.Module):
         padding = kernel_size // 2
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.reset_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
-        #self.reset_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
-        self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
-        #self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
-        self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
-        #self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
+        #self.reset_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
+        self.reset_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
+        #self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
+        self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
+        #self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size)
+        self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
 
         init.orthogonal_(self.reset_gate.weight)
         init.orthogonal_(self.update_gate.weight)
