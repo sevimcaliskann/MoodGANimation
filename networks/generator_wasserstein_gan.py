@@ -20,20 +20,20 @@ class Generator(NetworkBase):
         super(Generator, self).__init__()
         self._name = 'generator_wgan'
 
-        self.first_conv = nn.Sequential([nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False), \
-                                         nn.InstanceNorm2d(conv_dim, affine=True), \
-                                         nn.ReLU(inplace=True)])
+        self.first_conv = nn.Sequential(nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False), \
+                                        nn.InstanceNorm2d(conv_dim, affine=True), \
+                                        nn.ReLU(inplace=True))
 
         # Down-Sampling
         curr_dim = conv_dim
-        self.encode1 = nn.Sequential([nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                      nn.InstanceNorm2d(curr_dim*2, affine=True), \
-                                      nn.ReLU(inplace=True)])
+        self.encode1 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                     nn.InstanceNorm2d(curr_dim*2, affine=True), \
+                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim * 2
 
-        self.encode2 = nn.Sequential([nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                      nn.InstanceNorm2d(curr_dim*2, affine=True), \
-                                      nn.ReLU(inplace=True)])
+        self.encode2 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                     nn.InstanceNorm2d(curr_dim*2, affine=True), \
+                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim * 2
         ## feature map sizes are 32x32
 
@@ -42,13 +42,13 @@ class Generator(NetworkBase):
         self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=curr_dim,
                   kernel_sizes=7, n_layers=6)
 
-        self.deconv1 = nn.Sequential([nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                      nn.InstanceNorm2d(curr_dim//2, affine=True), \
-                                      nn.ReLU(inplace=True)])
+        self.deconv1 = nn.Sequential(nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                     nn.InstanceNorm2d(curr_dim//2, affine=True), \
+                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim // 2
-        self.deconv2 = nn.Sequential([nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                      nn.InstanceNorm2d(curr_dim//2, affine=True), \
-                                      nn.ReLU(inplace=True)])
+        self.deconv2 = nn.Sequential(nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
+                                     nn.InstanceNorm2d(curr_dim//2, affine=True), \
+                                     nn.ReLU(inplace=True))
         curr_dim = curr_dim // 2
 
         layers = []
