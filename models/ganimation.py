@@ -259,8 +259,9 @@ class GANimation(BaseModel):
             hidden_gp = None
             interpolated_video = list()
             for i in range(fake_vids_masked.size(1)):
-                loss_D_gp, hidden_gp, interpolated += self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :], hidden_gp)
+                loss_D_gp_inc, hidden_gp, interpolated = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :], hidden_gp)
                 interpolated_video.append(interpolated)
+                loss_D_gp += loss_D_gp_inc
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
