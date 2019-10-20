@@ -14,7 +14,7 @@ class Flatten(nn.Module):
 class DiscriminatorTemporal(NetworkBase):
     """Discriminator. PatchGAN."""
     def __init__(self, image_size=128, conv_dim=64, repeat_num=6):
-        super(Discriminator, self).__init__()
+        super(DiscriminatorTemporal, self).__init__()
         self._name = 'discriminator_temporal'
 
         feat_layers = []
