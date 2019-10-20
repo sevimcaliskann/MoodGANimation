@@ -13,12 +13,12 @@ class Flatten(nn.Module):
 
 class DiscriminatorTemporal(NetworkBase):
     """Discriminator. PatchGAN."""
-    def __init__(self, image_size=128, conv_dim=64, repeat_num=6):
+    def __init__(self, image_size=128, conv_dim=64, repeat_num=6, frame_number=16):
         super(DiscriminatorTemporal, self).__init__()
         self._name = 'discriminator_temporal'
 
         feat_layers = []
-        feat_layers.append(nn.Conv3d(3, conv_dim, kernel_size=(3,4,4), stride=(1,2,2), padding=(1,1,1)))
+        feat_layers.append(nn.Conv3d(frame_number, conv_dim, kernel_size=(3,4,4), stride=(1,2,2), padding=(1,1,1)))
         feat_layers.append(nn.LeakyReLU(0.01, inplace=True))
 
         curr_dim = conv_dim

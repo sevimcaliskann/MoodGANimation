@@ -61,7 +61,7 @@ class GANimation(BaseModel):
         return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.cond_nc, image_size=self._opt.image_size)
 
     def _create_temp_discriminator(self):
-        return NetworksFactory.get_by_name('discriminator_temporal', image_size=self._opt.image_size)
+        return NetworksFactory.get_by_name('discriminator_temporal', image_size=self._opt.image_size, frame_number=self._opt.frames_cnt-1)
 
     def _create_perceptual_network(self):
         return NetworksFactory.get_by_name('perceptual_network', opt=self._opt)
