@@ -14,6 +14,9 @@ class NetworksFactory:
         elif network_name == 'discriminator_wasserstein_gan':
             from .discriminator_wasserstein_gan import Discriminator
             network = Discriminator(*args, **kwargs)
+        elif network_name == 'discriminator_temporal':
+            from .discriminator_temporal import DiscriminatorTemporal
+            network = DiscriminatorTemporal(*args, **kwargs)
         else:
             raise ValueError("Network %s not recognized." % network_name)
 

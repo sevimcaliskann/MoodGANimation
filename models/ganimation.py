@@ -46,22 +46,38 @@ class GANimation(BaseModel):
             self._D = torch.nn.DataParallel(self._D, device_ids=self._gpu_ids[0])
         self._D.cuda()
 
+        self._D_temp = self._create_temp_discriminator()
+        self._D_temp.init_weights()
+        if len(self._gpu_ids) > 1:
+            self._D_temp = torch.nn.DataParallel(self._D_temp, device_ids=self._gpu_ids[0])
+        self._D_temp.cuda()
+
+        #self._perceptual = self._create_perceptual_network()
 
     def _create_generator(self):
         return NetworksFactory.get_by_name('generator_wasserstein_gan', c_dim=self._opt.cond_nc+3)
 
     def _create_discriminator(self):
-        return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.cond_nc)
+        return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.cond_nc, image_size=self._opt.image_size)
+
+    def _create_temp_discriminator(self):
+        return NetworksFactory.get_by_name('discriminator_temporal', image_size=self._opt.image_size)
+
+    def _create_perceptual_network(self):
+        return NetworksFactory.get_by_name('perceptual_network', opt=self._opt)
 
     def _init_train_vars(self):
         self._current_lr_G = self._opt.lr_G
         self._current_lr_D = self._opt.lr_D
+        self._current_lr_D_temp = self._opt.lr_D_temp
 
         # initialize optimizers
         self._optimizer_G = torch.optim.Adam(self._G.parameters(), lr=self._current_lr_G,
                                              betas=[self._opt.G_adam_b1, self._opt.G_adam_b2])
         self._optimizer_D = torch.optim.Adam(self._D.parameters(), lr=self._current_lr_D,
                                              betas=[self._opt.D_adam_b1, self._opt.D_adam_b2])
+        self._optimizer_D_temp = torch.optim.Adam(self._D_temp.parameters(), lr=self._current_lr_D_temp,
+                                             betas=[self._opt.D_temp_adam_b1, self._opt.D_temp_adam_b2])
 
     def _init_prefetch_inputs(self):
         self._input_frames = self._Tensor(self._opt.batch_size, self._opt.frames_cnt, 3, self._opt.image_size, self._opt.image_size)
@@ -74,23 +90,22 @@ class GANimation(BaseModel):
         #self._input_real_cond_path = None
 
     def _init_losses(self):
-        # define loss functions
         self._criterion_cycle = torch.nn.L1Loss().cuda()
         self._robust_cycle = torch.nn.SmoothL1Loss().cuda()
         self._criterion_D_cond = torch.nn.MSELoss().cuda()
+        self._criterion_perceptual = torch.nn.MSELoss().cuda()
 
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
-        #self._loss_g_cond = Variable(self._Tensor([0]))
         self._loss_g_cyc = Variable(self._Tensor([0]))
         self._loss_g_mask_1 = Variable(self._Tensor([0]))
-        self._loss_g_mask_2 = Variable(self._Tensor([0]))
-        #self._loss_g_idt = Variable(self._Tensor([0]))
         self._loss_g_masked_fake = Variable(self._Tensor([0]))
-        self._loss_g_masked_cond = Variable(self._Tensor([0]))
-        #self._loss_g_cyc_cond = Variable(self._Tensor([0]))
+        self._loss_g_temp_fake = Variable(self._Tensor([0]))
         self._loss_g_mask_1_smooth = Variable(self._Tensor([0]))
-        self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
+        self._loss_g_perceptual = Variable(self._Tensor([0]))
+        self._loss_g_temporal = Variable(self._Tensor([0]))
+        self._loss_g_masked_cond = Variable(self._Tensor([0]))
+        #self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
         #self._loss_inv_mask = Variable(self._Tensor([0]))
         #self._loss_color_maps = Variable(self._Tensor([0]))
         #self._loss_rec_real_img_rgb = Variable(self._Tensor([0]))
@@ -99,9 +114,14 @@ class GANimation(BaseModel):
 
         # init losses D
         self._loss_d_real = Variable(self._Tensor([0]))
-        self._loss_d_cond = Variable(self._Tensor([0]))
         self._loss_d_fake = Variable(self._Tensor([0]))
         self._loss_d_gp = Variable(self._Tensor([0]))
+        self._loss_d_cond = Variable(self._Tensor([0]))
+
+        self._loss_d_temp_real = Variable(self._Tensor([0]))
+        self._loss_d_temp_fake = Variable(self._Tensor([0]))
+        self._loss_d_temp_gp = Variable(self._Tensor([0]))
+
 
     def set_input(self, input):
         self._input_frames.resize_(input['frames'].size()).copy_(input['frames'])
@@ -120,7 +140,6 @@ class GANimation(BaseModel):
             self._first_ann = self._first_ann.cuda(self._gpu_ids[0], async=True)
             #self._input_desired_cond = self._input_desired_cond.cuda(self._gpu_ids[0], async=True)
 
-
     def set_train(self):
         self._G.train()
         self._D.train()
@@ -138,15 +157,16 @@ class GANimation(BaseModel):
         if not self._is_train:
             first_frame = Variable(self._first_frame, volatile=True)
             fake_imgs_masked = None
-            feats_gen = None
+            hidden = None
             fake_videos = list()
             fake_mask_videos = list()
             fake_videos_masked = list()
             for idx in range(1, self._opt.frames_cnt):
                 real_cond = Variable(self._input_annotations[:, idx, :], volatile=True)
-                fake_imgs, fake_img_mask, feats_gen = self._G.forward(first_frame, real_cond, feats_gen)
+                fake_imgs, fake_img_mask, hidden = self._G.forward(first_frame, real_cond, hidden)
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
                 fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
+
                 fake_videos_masked.append(fake_imgs_masked)
                 fake_mask_videos.append(fake_img_mask)
                 fake_videos.append(fake_imgs)
@@ -154,6 +174,8 @@ class GANimation(BaseModel):
             fake_videos = torch.transpose(torch.stack(fake_videos), 0, 1)
             fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
             fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
+
+
 
             imgs = None
             data = None
@@ -223,19 +245,44 @@ class GANimation(BaseModel):
             self._first_ann = Variable(self._first_ann)
 
             # train D
-            loss_D, fake_vids_masked = self._forward_D()
+            loss_D, loss_D_temp, fake_vids_masked = self._forward_D()
             self._optimizer_D.zero_grad()
             loss_D.backward()
             self._optimizer_D.step()
 
+            self._optimizer_D_temp.zero_grad()
+            loss_D_temp.backward()
+            self._optimizer_D_temp.step()
+
             loss_D_gp = 0
-            hidden = None
+            self._loss_d_gp = 0
+            hidden_gp = None
+            interpolated_video = list()
             for i in range(fake_vids_masked.size(1)):
-                loss_D_inc, hidden= self._gradinet_penalty_D(self._first, fake_vids_masked[:, i, :, :, :], hidden)
-                loss_D_gp += loss_D_inc
+                loss_D_gp, hidden_gp, interpolated += self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :], hidden_gp)
+                interpolated_video.append(interpolated)
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
+
+
+            interpolated_video = torch.transpose(torch.stack(interpolated_video), 0, 1)
+            interpolated_prob = self._D_temp.forward(interpolated)
+            grad = torch.autograd.grad(outputs=interpolated_prob,
+                                       inputs=interpolated_video,
+                                       grad_outputs=torch.ones(interpolated_prob.size()).cuda(),
+                                       retain_graph=True,
+                                       create_graph=True,
+                                       only_inputs=True)[0]
+
+            # penalize gradients
+            grad = grad.view(grad.size(0), -1)
+            grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
+            self._loss_d_temp_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
+            self._optimizer_D_temp.zero_grad()
+            self._loss_d_temp_gp.backward()
+            self._optimizer_D_temp.step()
+
 
             # train G
             if train_generator:
@@ -244,18 +291,40 @@ class GANimation(BaseModel):
                 loss_G.backward()
                 self._optimizer_G.step()
 
+    def infer_features(self, model, img):
+        features = list()
+        prev_out = None
+        layers = list(model.children())
+        for layer in layers:
+            prev_out = layer.forward(img) if prev_out is None else layer.forward(prev_out)
+            features.append(prev_out)
+        return features
+
+
+    def get_perceptual_loss(self, model, real, fake, criterion, weight):
+        real_features = self.infer_features(model, real)
+        fake_features = self.infer_features(model, fake)
+        loss = 0
+        weight_inc = weight / len(real_features)
+        weight_ = 0
+        for i in range(len(real_features)):
+            loss += weight_ * criterion(real_features[i], fake_features[i])
+            weight_ += weight_inc
+        return loss
+
     def _forward_G(self, keep_data_for_visuals):
         # generate fake images
         self._loss_g_masked_fake = 0
-        self._loss_g_masked_cond = 0
         self._loss_g_cyc = 0
         self._loss_g_mask_1 = 0
         self._loss_g_mask_1_smooth = 0
+        self._loss_g_masked_cond = 0
+        #self._loss_g_perceptual = 0
 
 
         fake_imgs_masked = None
-        feats_gen = None
-        feats_disc = None
+        hidden_gen = None
+        hidden_disc = None
         fake_videos = list()
         fake_mask_videos = list()
         fake_videos_masked = list()
@@ -263,16 +332,20 @@ class GANimation(BaseModel):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            fake_imgs, fake_img_mask, feats_gen = self._G.forward(self._first, real_cond, feats_gen)
+
+            fake_imgs, fake_img_mask, hidden_gen = self._G.forward(self._first, real_cond, hidden_gen)
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
-            d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond, feats_disc = self._D.forward(fake_imgs_masked, feats_disc)
+
+
+            d_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond, hidden_disc = self._D.forward(fake_imgs_masked, hidden_disc)
             self._loss_g_masked_fake += self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
-            self._loss_g_masked_cond += self._criterion_D_cond(d_fake_desired_img_masked_cond, real_cond) / self._B * self._opt.lambda_D_cond
-            self._loss_g_cyc += self._criterion_cycle(fake_imgs_masked, real_img) * self._opt.lambda_cyc
             self._loss_g_mask_1 += torch.mean(fake_img_mask) * self._opt.lambda_mask
             self._loss_g_mask_1_smooth += self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
+            self._loss_g_cyc += self._criterion_cycle(real_img, fake_imgs_masked)
+            self._loss_g_masked_cond += self._criterion_D_cond(d_fake_desired_img_masked_cond, real_cond)*self._opt.lambda_D_cond
+            #self._loss_g_perceptual += self.get_perceptual_loss(self._D, concatenated_real, concatenated_fake, self._criterion_perceptual, self._opt.lambda_perceptual)
 
             fake_videos_masked.append(fake_imgs_masked)
             fake_mask_videos.append(fake_img_mask)
@@ -281,6 +354,10 @@ class GANimation(BaseModel):
         fake_videos = torch.transpose(torch.stack(fake_videos), 0, 1)
         fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
+
+        d_temp_desired_prob = self._D.forward(fake_videos_masked)
+        self._loss_g_temp_fake += self._compute_loss_D(d_temp_desired_prob, True) * self._opt.lambda_D_temp
+        #self._loss_g_temporal = self._compute_temporal_loss_smooth(fake_videos_masked)*self._opt.lambda_temporal
 
         # keep data for visualization
         if keep_data_for_visuals:
@@ -296,48 +373,59 @@ class GANimation(BaseModel):
             self._vis_batch_fake_img_mask = util.tensor2maskvid(fake_mask_videos.data, idx=-1)
             self._vis_batch_fake_img = util.tensor2vid(fake_videos_masked.data, idx=-1)
 
-        # combine losses
-        return self._loss_g_masked_fake + self._loss_g_masked_cond + \
-               self._loss_g_cyc + \
-               self._loss_g_mask_1 + self._loss_g_mask_1_smooth
+
+
+        return self._loss_g_masked_fake + self._loss_g_cyc + self._loss_g_temp_fake + \
+               self._loss_g_mask_1 + self._loss_g_mask_1_smooth + self._loss_g_masked_cond
 
 
     def _forward_D(self):
         self._loss_d_real = 0
-        self._loss_d_cond = 0
         self._loss_d_fake = 0
+        self._loss_d_cond = 0
         fake_imgs_masked = None
-        feats_gen = None
-        feats_disc_real = None
-        feats_disc_fake = None
+        hidden_fake = None
+        hidden_real = None
+        hidden_gen = None
         fake_videos_masked = list()
         for idx in range(1, self._opt.frames_cnt):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            fake_imgs, fake_img_mask, feats_gen = self._G.forward(self._first, real_cond, feats_gen)
+            fake_imgs, fake_img_mask, hidden_gen = self._G.forward(self._first, real_cond, hidden_gen)
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
-            d_real_img_prob, d_real_img_cond, feats_disc_real = self._D.forward(real_img, feats_disc_real)
+            d_real_img_prob, d_real_img_cond, hidden_real = self._D.forward(real_img, hidden_real)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
-            self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, real_cond) / self._B * self._opt.lambda_D_cond
+            self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, real_cond)*self._opt.lambda_D_cond
+
+
+
             # D(fake_I)
-            d_fake_desired_img_prob, _, feats_disc_fake = self._D.forward(fake_imgs_masked.detach(), feats_disc_fake)
+            d_fake_desired_img_prob, _, hidden_fake = self._D.forward(fake_imgs_masked, hidden_fake)
             self._loss_d_fake += self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
             fake_videos_masked.append(fake_imgs_masked)
+
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
 
+        d_fake_temporal = self._D_temp.forward(fake_videos_masked)
+        self._loss_d_temp_fake = self._compute_loss_D(d_fake_temporal, False) * self._opt.lambda_D_temp
 
-        return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_videos_masked
+        d_real_temporal = self._D_temp.forward(self._frames)
+        self._loss_d_temp_real = self._compute_loss_D(d_real_temporal, True) * self._opt.lambda_D_temp
+
+
+        return self._loss_d_real + self._loss_d_fake + self._loss_d_cond, \
+                self._loss_d_temp_fake + self._loss_d_temp_real, fake_videos_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
-    def _gradinet_penalty_D(self, prev, fake_imgs_masked, hidden = None):
+    def _gradinet_penalty_D(self, fake_imgs_masked, hidden = None):
         #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # interpolate sample
         alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._first_frame)
-        interpolated = Variable(alpha * prev.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
-        interpolated_prob, _, hidden = self._D.forward(interpolated, hidden)
+        interpolated = Variable(alpha * self._first_frame.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
+        interpolated_prob, _, hidden = self._D(interpolated, hidden)
 
         # compute gradients
         grad = torch.autograd.grad(outputs=interpolated_prob,
@@ -350,9 +438,9 @@ class GANimation(BaseModel):
         # penalize gradients
         grad = grad.view(grad.size(0), -1)
         grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
-        self._loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
+        self._loss_d_gp += torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
 
-        return self._loss_d_gp, hidden
+        return self._loss_d_gp, hidden, interpolated
 
     def _compute_loss_D(self, estim, is_real):
         return -torch.mean(estim) if is_real else torch.mean(estim)
@@ -362,6 +450,9 @@ class GANimation(BaseModel):
                torch.sum(torch.abs(mat[:, :, :-1, :] - mat[:, :, 1:, :])**2)
         #return torch.sum(torch.abs(mat[:, :, :, :-1] - mat[:, :, :, 1:])) + \
         #       torch.sum(torch.abs(mat[:, :, :-1, :] - mat[:, :, 1:, :]))
+
+    def _compute_temporal_loss_smooth(self, mat):
+        return torch.sum(torch.abs(mat[:, :-1, :, :, :] - mat[:, 1:, :, :, :])**2)
 
     def get_current_errors(self):
         loss_dict = OrderedDict([#('g_fake', self._loss_g_fake.detach()),
@@ -375,14 +466,20 @@ class GANimation(BaseModel):
                                  ('g_m1', self._loss_g_mask_1.detach()),
                                  #('g_m2', self._loss_g_mask_2.detach()),
                                  ('g_m1_s', self._loss_g_mask_1_smooth.detach()),
+                                 ('g_temp', self._loss_g_temp_fake.detach()),
+                                 ('d_temp_real', self._loss_d_temp_real.detach()),
+                                 ('d_temp_fake', self._loss_d_temp_fake.detach()),
+                                 ('d_temp_gp', self._loss_d_temp_gp.detach()),
+                                 #('g_perceptual', self._loss_g_perceptual.detach()),
+                                 #('g_temporal', self._loss_g_temporal.detach()),
                                  #('g_m2_s', self._loss_g_mask_2_smooth.detach()),
                                  #('g_mask_inv', self._loss_inv_mask.detach()),
                                  #('g_color_maps', self._loss_color_maps.detach()),
 
                                  #('g_idt', self._loss_g_idt.detach()),
                                  ('d_real', self._loss_d_real.detach()),
-                                 ('d_cond', self._loss_d_cond.detach()),
                                  ('d_fake', self._loss_d_fake.detach()),
+                                 ('d_cond', self._loss_d_cond.detach()),
                                  ('d_gp', self._loss_d_gp.detach())])
 
         return loss_dict
@@ -417,10 +514,12 @@ class GANimation(BaseModel):
         # save networks
         self._save_network(self._G, 'G', label)
         self._save_network(self._D, 'D', label)
+        self._save_network(self._D_temp, 'D_temp', label)
 
         # save optimizers
         self._save_optimizer(self._optimizer_G, 'G', label)
         self._save_optimizer(self._optimizer_D, 'D', label)
+        self._save_optimizer(self._optimizer_D_temp, 'D_temp', label)
 
     def load(self):
         load_epoch = self._opt.load_epoch
@@ -431,10 +530,12 @@ class GANimation(BaseModel):
         if self._is_train:
             # load D
             self._load_network(self._D, 'D', load_epoch)
+            self._load_network(self._D_temp, 'D_temp', load_epoch)
 
             # load optimizers
             self._load_optimizer(self._optimizer_G, 'G', load_epoch)
             self._load_optimizer(self._optimizer_D, 'D', load_epoch)
+            self._load_optimizer(self._optimizer_D_temp, 'D_temp', load_epoch)
 
     def update_learning_rate(self):
         # updated learning rate G
@@ -450,6 +551,14 @@ class GANimation(BaseModel):
         for param_group in self._optimizer_D.param_groups:
             param_group['lr'] = self._current_lr_D
         print('update D learning rate: %f -> %f' %  (self._current_lr_D + lr_decay_D, self._current_lr_D))
+
+
+        # update learning rate D_temp
+        lr_decay_D_temp = self._opt.lr_D_temp / self._opt.nepochs_decay
+        self._current_lr_D_temp -= lr_decay_D_temp
+        for param_group in self._optimizer_D_temp.param_groups:
+            param_group['lr'] = self._current_lr_D_temp
+        print('update D_temp learning rate: %f -> %f' %  (self._current_lr_D_temp + lr_decay_D_temp, self._current_lr_D_temp))
 
     def _l1_loss_with_target_gradients(self, input, target):
         return torch.sum(torch.abs(input - target)) / input.detach().nelement()
