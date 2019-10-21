@@ -61,7 +61,7 @@ class GANimation(BaseModel):
         return NetworksFactory.get_by_name('discriminator_wasserstein_gan', c_dim=self._opt.cond_nc, image_size=self._opt.image_size)
 
     def _create_temp_discriminator(self):
-        return NetworksFactory.get_by_name('discriminator_temporal', image_size=self._opt.image_size, frame_number=self._opt.frames_cnt-1)
+        return NetworksFactory.get_by_name('discriminator_temporal', image_size=self._opt.image_size, frame_number=(self._opt.frames_cnt-1))
 
     def _create_perceptual_network(self):
         return NetworksFactory.get_by_name('perceptual_network', opt=self._opt)
@@ -259,7 +259,7 @@ class GANimation(BaseModel):
             hidden_gp = None
             interpolated_video = list()
             for i in range(fake_vids_masked.size(1)):
-                loss_D_gp_inc, hidden_gp, interpolated = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :], hidden_gp)
+                loss_D_gp_inc, hidden_gp, interpolated = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach(), hidden_gp)
                 interpolated_video.append(interpolated)
                 loss_D_gp += loss_D_gp_inc
             self._optimizer_D.zero_grad()
@@ -268,7 +268,7 @@ class GANimation(BaseModel):
 
 
             interpolated_video = torch.transpose(torch.stack(interpolated_video), 0, 1)
-            interpolated_prob = self._D_temp.forward(interpolated)
+            interpolated_prob = self._D_temp.forward(interpolated_video)
             grad = torch.autograd.grad(outputs=interpolated_prob,
                                        inputs=interpolated_video,
                                        grad_outputs=torch.ones(interpolated_prob.size()).cuda(),
@@ -356,8 +356,8 @@ class GANimation(BaseModel):
         fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
 
-        d_temp_desired_prob = self._D.forward(fake_videos_masked)
-        self._loss_g_temp_fake += self._compute_loss_D(d_temp_desired_prob, True) * self._opt.lambda_D_temp
+        d_temp_desired_prob = self._D_temp.forward(fake_videos_masked)
+        self._loss_g_temp_fake = self._compute_loss_D(d_temp_desired_prob, True) * self._opt.lambda_D_temp
         #self._loss_g_temporal = self._compute_temporal_loss_smooth(fake_videos_masked)*self._opt.lambda_temporal
 
         # keep data for visualization
@@ -410,10 +410,10 @@ class GANimation(BaseModel):
 
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
 
-        d_fake_temporal = self._D_temp.forward(fake_videos_masked)
+        d_fake_temporal = self._D_temp.forward(fake_videos_masked.detach())
         self._loss_d_temp_fake = self._compute_loss_D(d_fake_temporal, False) * self._opt.lambda_D_temp
 
-        d_real_temporal = self._D_temp.forward(self._frames)
+        d_real_temporal = self._D_temp.forward(self._frames[:, 1:, :, :, :])
         self._loss_d_temp_real = self._compute_loss_D(d_real_temporal, True) * self._opt.lambda_D_temp
 
 
