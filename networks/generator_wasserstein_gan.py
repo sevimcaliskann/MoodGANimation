@@ -10,7 +10,7 @@ class Generator(NetworkBase):
         self._name = 'generator_wgan'
 
         layers = []
-        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
         layers.append(nn.ReLU(inplace=True))
 
