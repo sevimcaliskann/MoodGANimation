@@ -2,125 +2,38 @@ import torch.nn as nn
 import numpy as np
 from .networks import NetworkBase
 import torch
-from .convgru import ConvGRU
-
-class Flatten(nn.Module):
-    def forward(self, x):
-        x = x.view(1, x.size()[0], -1)
-        return x
-
-class Deflatten(nn.Module):
-    def forward(self, x):
-        x = x.view(x.size(1), -1, 4, 4)
-        return x
 
 class Generator(NetworkBase):
     """Generator. Encoder-Decoder Architecture."""
-    def __init__(self, conv_dim=8, c_dim=5, repeat_num=5):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
         self._name = 'generator_wgan'
 
-        self.first_conv = nn.Sequential(nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False), \
-                                        nn.InstanceNorm2d(conv_dim, affine=True), \
-                                        nn.ReLU(inplace=True))
+        layers = []
+        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
+        layers.append(nn.ReLU(inplace=True))
 
         # Down-Sampling
         curr_dim = conv_dim
-        self.encode1 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                     nn.InstanceNorm2d(curr_dim*2, affine=True), \
-                                     nn.ReLU(inplace=True))
-        curr_dim = curr_dim * 2
-
-        self.encode2 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                     nn.InstanceNorm2d(curr_dim*2, affine=True), \
-                                     nn.ReLU(inplace=True))
-        curr_dim = curr_dim * 2
-        ## feature map sizes are 32x32
+        for i in range(2):
+            layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
+            layers.append(nn.ReLU(inplace=True))
+            curr_dim = curr_dim * 2
 
         # Bottleneck
-        #layers.append(Flatten())
-        self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=curr_dim,
-                  kernel_sizes=7, n_layers=6)
-
-        self.deconv1 = nn.Sequential(nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                     nn.InstanceNorm2d(curr_dim//2, affine=True), \
-                                     nn.ReLU(inplace=True))
-        curr_dim = curr_dim // 2
-        self.deconv2 = nn.Sequential(nn.ConvTranspose2d(2*curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                     nn.InstanceNorm2d(curr_dim//2, affine=True), \
-                                     nn.ReLU(inplace=True))
-        curr_dim = curr_dim // 2
-
-        layers = []
-        layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.Tanh())
-        self.img_reg = nn.Sequential(*layers)
-
-        layers = []
-        layers.append(nn.Conv2d(curr_dim, 1, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.Sigmoid())
-        self.attetion_reg = nn.Sequential(*layers)
-
-
-    def forward(self, x, c, hidden = None):
-        # replicate spatially and concatenate domain information
-        c = c.unsqueeze(2).unsqueeze(3)
-        c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
-        x = torch.cat([x, c], dim=1)
-
-        first = self.first_conv(x)
-        encoded1 = self.encode1(first)
-        encoded2 = self.encode2(encoded1)
-        if hidden is None:
-            out = self.gru(encoded2)
-        else:
-            out = self.gru(encoded2, hidden)
-
-
-        decoded1 = self.deconv1(torch.cat([out[-1], encoded2], dim=1))
-        decoded2 = self.deconv2(torch.cat([decoded1, encoded1], dim=1))
-
-        return self.img_reg(decoded2), self.attetion_reg(decoded2), out
-
-
-
-
-
-
-    '''def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
-        super(Generator, self).__init__()
-        self._name = 'generator_wgan'
-
-
-        self.conv1 = nn.Sequential(nn.Conv2d(c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False),\
-                                    nn.InstanceNorm2d(conv_dim, affine=True), \
-                                    nn.ReLU(inplace=True))
-
-        # Down-Sampling
-        curr_dim = conv_dim
-        self.conv2 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                    nn.InstanceNorm2d(curr_dim*2, affine=True), \
-                                    nn.ReLU(inplace=True))
-        curr_dim = curr_dim*2
-        self.conv3 = nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                    nn.InstanceNorm2d(curr_dim*2, affine=True), \
-                                    nn.ReLU(inplace=True))
-        curr_dim = curr_dim*2
-
-        # Bottleneck
-        layers = []
         for i in range(repeat_num):
             layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
-        self.residual = nn.Sequential(*layers)
 
-        self.deconv1 = nn.Sequential(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                    nn.InstanceNorm2d(curr_dim//2, affine=True), \
-                                    nn.ReLU(inplace=True))
-        curr_dim = curr_dim //2
-        self.deconv2 = nn.Sequential(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False), \
-                                    nn.InstanceNorm2d(curr_dim//2, affine=True), \
-                                    nn.ReLU(inplace=True))
-        curr_dim = curr_dim //2
+        # Up-Sampling
+        for i in range(2):
+            layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
+            layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
+            layers.append(nn.ReLU(inplace=True))
+            curr_dim = curr_dim // 2
+
+        self.main = nn.Sequential(*layers)
 
         layers = []
         layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
@@ -132,33 +45,13 @@ class Generator(NetworkBase):
         layers.append(nn.Sigmoid())
         self.attetion_reg = nn.Sequential(*layers)
 
-    def forward(self, x, c, feats = None):
+    def forward(self, x, c):
         # replicate spatially and concatenate domain information
         c = c.unsqueeze(2).unsqueeze(3)
         c = c.expand(c.size(0), c.size(1), x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
-
-        conv1_out = self.conv1(x)
-        conv1_out_cat = torch.mean(torch.stack((conv1_out, feats['conv1_out'])), dim=0) \
-                        if feats is not None else conv1_out
-        conv2_out = self.conv2(conv1_out_cat)
-        conv2_out_cat = torch.mean(torch.stack((conv2_out, feats['conv2_out'])), dim=0) \
-                        if feats is not None else conv2_out
-        conv3_out = self.conv3(conv2_out_cat)
-        residual_out = self.residual(conv3_out)
-        residual_out_cat = torch.mean(torch.stack((residual_out, feats['residual_out'])), dim = 0) \
-                        if feats is not None else residual_out
-
-
-        deconv1_out = self.deconv1(residual_out_cat)
-        deconv1_out_cat = torch.mean(torch.stack((deconv1_out, feats['deconv1_out'])), dim = 0) \
-                        if feats is not None else deconv1_out
-        deconv2_out = self.deconv2(deconv1_out_cat)
-        feats = {'conv1_out':conv1_out, \
-                 'conv2_out':conv2_out, \
-                 'residual_out':residual_out, \
-                 'deconv1_out':deconv1_out}
-        return self.img_reg(deconv2_out), self.attetion_reg(deconv2_out), feats'''
+        features = self.main(x)
+        return self.img_reg(features), self.attetion_reg(features)
 
 class ResidualBlock(nn.Module):
     """Residual Block."""

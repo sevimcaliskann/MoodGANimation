@@ -13,17 +13,17 @@ class Flatten(nn.Module):
 
 class DiscriminatorTemporal(NetworkBase):
     """Discriminator. PatchGAN."""
-    def __init__(self, image_size=128, conv_dim=64, repeat_num=6, frame_number=16):
+    def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super(DiscriminatorTemporal, self).__init__()
         self._name = 'discriminator_temporal'
 
         feat_layers = []
-        feat_layers.append(nn.Conv3d(frame_number, conv_dim, kernel_size=(3,4,4), stride=(1,2,2), padding=(1,1,1)))
+        feat_layers.append(nn.Conv2d(3, conv_dim, kernel_size=4, stride=2, padding=1))
         feat_layers.append(nn.LeakyReLU(0.01, inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
-            feat_layers.append(nn.Conv3d(curr_dim, curr_dim*2, kernel_size=(3,4,4), stride=(1,2,2), padding=(1,1,1)))
+            feat_layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1))
             feat_layers.append(nn.LeakyReLU(0.01, inplace=True))
             #if i <=repeat_num/2:
             #    self.feat_layers.append(nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
@@ -35,21 +35,26 @@ class DiscriminatorTemporal(NetworkBase):
             curr_dim = curr_dim * 2
 
         k_size = int(image_size / np.power(2, repeat_num))
-        #feat_layers.append(Flatten())
         self.main = nn.Sequential(*feat_layers)
 
-        self.adv = nn.Conv3d(curr_dim, 1, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1), bias=False)
-        #self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=128, kernel_sizes=3, n_layers=1)
-        #self.regress = nn.Conv2d(128, c_dim, kernel_size=k_size, bias=False)
+        self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=curr_dim, kernel_sizes=3, n_layers=1)
+        self.adv = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.regress = nn.Conv2d(curr_dim, c_dim, kernel_size=k_size, bias=False)
 
 
 
 
     def forward(self, x, hidden=None):
         h = self.main(x)
-        out_real = self.adv(h)
+        if hidden is None:
+            out = self.gru(h)
+        else:
+            out = self.gru(h, hidden)
 
-        return out_real.squeeze()
+        out_real = self.adv(out[-1])
+        out_aux = self.regress(out[-1])
+
+        return out_real.squeeze(), out_aux.squeeze(), out
 
     def load_from_checkpoint(self, save_dir, epoch_label):
         load_filename = 'net_epoch_%s_id_D.pth' % (epoch_label)
