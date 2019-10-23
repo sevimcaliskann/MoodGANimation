@@ -99,6 +99,7 @@ class GANimation(BaseModel):
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
         self._loss_g_cyc = Variable(self._Tensor([0]))
+        self._loss_g_bidirec_cyc = Variable(self._Tensor([0]))
         self._loss_g_mask_1 = Variable(self._Tensor([0]))
         self._loss_g_masked_fake = Variable(self._Tensor([0]))
         self._loss_g_temp_fake = Variable(self._Tensor([0]))
@@ -295,6 +296,26 @@ class GANimation(BaseModel):
                 loss_G.backward()
                 self._optimizer_G.step()
 
+    def _bidirectional_loss(self, fake_videos_masked):
+        loss = 0
+        last = fake_videos_masked[:, -1, :, :, :]
+        for idx in range(self._opt.frames_cnt-3, -1, -1):
+            cyc_img = fake_videos_masked[:, idx, :, :, :]
+            real_cond = self._annotations[:, idx+1, :]
+
+            fake_imgs, fake_img_mask = self._G.forward(last, real_cond)
+            fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+            fake_imgs_masked = fake_img_mask * last + (1 - fake_img_mask) * fake_imgs
+            loss += self._criterion_cycle(cyc_img, fake_imgs_masked)*self._opt.lambda_bidirec_cyc
+
+        real_cond = self._annotations[:, 0, :]
+        fake_imgs, fake_img_mask = self._G.forward(last, real_cond)
+        fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
+        fake_imgs_masked = fake_img_mask * last + (1 - fake_img_mask) * fake_imgs
+        loss += self._criterion_cycle(self._first, fake_imgs_masked)*self._opt.lambda_bidirec_cyc
+        return loss
+
+
     def _forward_G(self, keep_data_for_visuals):
         # generate fake images
         self._loss_g_masked_fake = 0
@@ -315,7 +336,6 @@ class GANimation(BaseModel):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-
             fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
@@ -323,14 +343,15 @@ class GANimation(BaseModel):
             dtmp_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond, hidden_disc = self._D_temp.forward(fake_imgs_masked, hidden_disc)
             d_fake_desired_img_masked_prob = self._D.forward(fake_imgs_masked)
 
+            #fake disc losses
             self._loss_g_masked_fake += self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
             self._loss_g_temp_fake += self._compute_loss_D(dtmp_fake_desired_img_masked_prob, True) * self._opt.lambda_D_temp
+            self._loss_g_masked_cond += self._criterion_D_cond(d_fake_desired_img_masked_cond, real_cond)*self._opt.lambda_D_cond
 
             self._loss_g_mask_1 += torch.mean(fake_img_mask) * self._opt.lambda_mask
             self._loss_g_mask_1_smooth += self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
-            self._loss_g_cyc += self._criterion_cycle(real_img, fake_imgs_masked)
-            self._loss_g_masked_cond += self._criterion_D_cond(d_fake_desired_img_masked_cond, real_cond)*self._opt.lambda_D_cond
-            #self._loss_g_perceptual += self.get_perceptual_loss(self._D, concatenated_real, concatenated_fake, self._criterion_perceptual, self._opt.lambda_perceptual)
+            self._loss_g_cyc += self._criterion_cycle(real_img, fake_imgs_masked) *self._opt.lambda_cyc
+
 
             fake_videos_masked.append(fake_imgs_masked)
             fake_mask_videos.append(fake_img_mask)
@@ -339,6 +360,7 @@ class GANimation(BaseModel):
         fake_videos = torch.transpose(torch.stack(fake_videos), 0, 1)
         fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
+        self._loss_g_bidirec_cyc = self._bidirectional_loss(fake_videos_masked)
 
         # keep data for visualization
         if keep_data_for_visuals:
@@ -356,7 +378,7 @@ class GANimation(BaseModel):
 
 
 
-        return self._loss_g_masked_fake + self._loss_g_cyc + self._loss_g_temp_fake + \
+        return self._loss_g_masked_fake + self._loss_g_cyc + self._loss_g_temp_fake + self._loss_g_bidirec_cyc + \
                self._loss_g_mask_1 + self._loss_g_mask_1_smooth + self._loss_g_masked_cond
 
 
@@ -443,6 +465,7 @@ class GANimation(BaseModel):
                                  ('g_mskd_fake', self._loss_g_masked_fake.detach()),
                                  ('g_mskd_cond', self._loss_g_masked_cond.detach()),
                                  ('g_cyc', self._loss_g_cyc.detach()),
+                                 ('g_bidirec_cyc', self._loss_g_bidirec_cyc.detach()),
                                  #('g_rgb', self._loss_rec_real_img_rgb.detach()),
                                  #('g_rgb_un', self._loss_g_unmasked_rgb.detach()),
                                  #('g_rgb_s', self._loss_g_fake_imgs_smooth.detach()),
@@ -452,7 +475,7 @@ class GANimation(BaseModel):
                                  ('g_temp', self._loss_g_temp_fake.detach()),
                                  ('d_temp_real', self._loss_d_temp_real.detach()),
                                  ('d_temp_fake', self._loss_d_temp_fake.detach()),
-                                 ('d_temp_gp', self._loss_d_temp_gp.detach()),
+                                 #('d_temp_gp', self._loss_d_temp_gp.detach()),
                                  #('g_perceptual', self._loss_g_perceptual.detach()),
                                  #('g_temporal', self._loss_g_temporal.detach()),
                                  #('g_m2_s', self._loss_g_mask_2_smooth.detach()),
