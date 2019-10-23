@@ -300,7 +300,8 @@ class GANimation(BaseModel):
         loss = 0
         last = fake_videos_masked[:, -1, :, :, :]
         for idx in range(self._opt.frames_cnt-3, -1, -1):
-            cyc_img = fake_videos_masked[:, idx, :, :, :]
+            #cyc_img = fake_videos_masked[:, idx, :, :, :]
+            cyc_img = self._frames[:, idx+1, :, :, :]
             real_cond = self._annotations[:, idx+1, :]
 
             fake_imgs, fake_img_mask = self._G.forward(last, real_cond)
