@@ -7,6 +7,7 @@ from .models import BaseModel
 from networks.networks import NetworksFactory
 import os
 import numpy as np
+import torch.nn
 
 
 class GANimation(BaseModel):
@@ -251,6 +252,7 @@ class GANimation(BaseModel):
 
             self._optimizer_D_temp.zero_grad()
             loss_D_temp.backward()
+            torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 1)
             self._optimizer_D_temp.step()
 
             loss_D_gp = 0
@@ -262,28 +264,28 @@ class GANimation(BaseModel):
                 loss_D_gp_inc, interpolated = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach())
                 loss_D_gp += loss_D_gp_inc
 
-                interpolated_prob, _, hidden_gp = self._D_temp.forward(interpolated, hidden_gp)
-                grad = torch.autograd.grad(outputs=interpolated_prob,
-                                           inputs=interpolated,
-                                           grad_outputs=torch.ones(interpolated_prob.size()).cuda(),
-                                           retain_graph=True,
-                                           create_graph=True,
-                                           only_inputs=True)[0]
+                #interpolated_prob, _, hidden_gp = self._D_temp.forward(interpolated, hidden_gp)
+                #grad = torch.autograd.grad(outputs=interpolated_prob,
+                #                           inputs=interpolated,
+                #                           grad_outputs=torch.ones(interpolated_prob.size()).cuda(),
+                #                           retain_graph=True,
+                #                           create_graph=True,
+                #                           only_inputs=True)[0]
 
                 # penalize gradients
-                grad = grad.view(grad.size(0), -1)
-                grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
-                self._loss_d_temp_gp += torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
-                
+                #grad = grad.view(grad.size(0), -1)
+                #grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
+                #self._loss_d_temp_gp += torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
+
             self._optimizer_D.zero_grad()
             loss_D_gp.backward()
             self._optimizer_D.step()
 
 
 
-            self._optimizer_D_temp.zero_grad()
-            self._loss_d_temp_gp.backward()
-            self._optimizer_D_temp.step()
+            #self._optimizer_D_temp.zero_grad()
+            #self._loss_d_temp_gp.backward()
+            #self._optimizer_D_temp.step()
 
 
             # train G
