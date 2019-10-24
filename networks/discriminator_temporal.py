@@ -51,7 +51,7 @@ class DiscriminatorTemporal(NetworkBase):
         else:
             out = self.gru(h, hidden)
 
-        out_real = self.adv(h)
+        out_real = self.adv(out[-1])
         out_aux = self.regress(out[-1])
 
         return out_real.squeeze(), out_aux.squeeze(), out
