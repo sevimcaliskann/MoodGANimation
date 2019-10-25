@@ -121,7 +121,8 @@ class MorphFacesInTheWild:
         video = cv2.VideoCapture(self._opt.groundtruth_video)
         length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
-        start = np.random.randint(0, length-self._opt.frames_cnt)
+        #start = np.random.randint(0, length-self._opt.frames_cnt)
+        start = 2970
         print('start face idx: ', start)
         video.set(1, start)
 
@@ -228,10 +229,10 @@ def main():
     morph = MorphFacesInTheWild(opt)
     #morph.random_generation(False)
     img, expression = morph.generate_from_groundtruth()
+    img = cv_utils.read_cv2_img(opt.input_path)
 
     #morph = MorphFacesInTheWild(opt, is_comparison=True)
-    #morph.morph_file(opt.groundtruth_video, expression, img=img)
-    #morph.random_generation(False)
+    morph.morph_file(opt.input_path, expression, img=img)
 
 
     #opt.name = 'maximize_mask_no_cycle'
