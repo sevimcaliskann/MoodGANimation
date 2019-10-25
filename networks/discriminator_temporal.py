@@ -44,17 +44,22 @@ class DiscriminatorTemporal(NetworkBase):
 
 
 
-    def forward(self, x, hidden=None):
-        h = self.main(x)
-        if hidden is None:
-            out = self.gru(h)
-        else:
-            out = self.gru(h, hidden)
+    def forward(self, frames):
+        hidden = None
+        reg = list()
+        for idx in range(frames.size(1)):
+            h = self.main(x)
+            if hidden is None:
+                out = self.gru(h)
+            else:
+                out = self.gru(h, hidden)
+            out_aux = self.regress(out[-1])
+            reg.append(out_aux.squeeze())
 
         out_real = self.adv(out[-1])
-        out_aux = self.regress(out[-1])
 
-        return out_real.squeeze(), out_aux.squeeze(), out
+
+        return out_real.squeeze(), torch.stack(reg, dim=1)
 
     def load_from_checkpoint(self, save_dir, epoch_label):
         load_filename = 'net_epoch_%s_id_D.pth' % (epoch_label)

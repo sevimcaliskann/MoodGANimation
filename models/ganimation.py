@@ -250,43 +250,38 @@ class GANimation(BaseModel):
             self._optimizer_D.zero_grad()
             loss_D.backward()
             self._optimizer_D.step()
-
             self._optimizer_D_temp.zero_grad()
             loss_D_temp.backward()
-            torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 1)
+            #torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 1)
             self._optimizer_D_temp.step()
 
-            loss_D_gp = 0
             self._loss_d_gp = 0
-            self._loss_d_temp_gp = 0
-            hidden_gp = None
-
             for i in range(fake_vids_masked.size(1)):
-                loss_D_gp_inc, interpolated = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach())
-                loss_D_gp += loss_D_gp_inc
-
-                #interpolated_prob, _, hidden_gp = self._D_temp.forward(interpolated, hidden_gp)
-                #grad = torch.autograd.grad(outputs=interpolated_prob,
-                #                           inputs=interpolated,
-                #                           grad_outputs=torch.ones(interpolated_prob.size()).cuda(),
-                #                           retain_graph=True,
-                #                           create_graph=True,
-                #                           only_inputs=True)[0]
-
-                # penalize gradients
-                #grad = grad.view(grad.size(0), -1)
-                #grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
-                #self._loss_d_temp_gp += torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
-
+                loss_D_gp_inc = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach())
+                self._loss_d_gp += loss_D_gp_inc
             self._optimizer_D.zero_grad()
-            loss_D_gp.backward()
+            self._loss_d_gp.backward()
             self._optimizer_D.step()
 
 
+            alpha = torch.rand(self._B, 1, 1, 1, 1).cuda().expand_as(fake_vids_masked)
+            interpolated = Variable(alpha * self.frames[:, 1:, :, :, :].detach() + (1 - alpha) * fake_vids_masked.detach(), requires_grad=True)
+            interpolated_prob, _ = self._D_temp(interpolated)
 
-            #self._optimizer_D_temp.zero_grad()
-            #self._loss_d_temp_gp.backward()
-            #self._optimizer_D_temp.step()
+            grad = torch.autograd.grad(outputs=interpolated_prob,
+                                       inputs=interpolated,
+                                       grad_outputs=torch.ones(interpolated_prob.size()).cuda(),
+                                       retain_graph=True,
+                                       create_graph=True,
+                                       only_inputs=True)[0]
+
+            # penalize gradients
+            grad = grad.view(grad.size(0), -1)
+            grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
+            self._loss_d_temp_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
+            self._optimizer_D_temp.zero_grad()
+            self._loss_d_temp_gp.backward()
+            self._optimizer_D_temp.step()
 
 
             # train G
@@ -327,9 +322,6 @@ class GANimation(BaseModel):
         self._loss_g_temp_fake = 0
         #self._loss_g_perceptual = 0
 
-
-        fake_imgs_masked = None
-        hidden_disc = None
         fake_videos = list()
         fake_mask_videos = list()
         fake_videos_masked = list()
@@ -341,14 +333,10 @@ class GANimation(BaseModel):
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
-            dtmp_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond, hidden_disc = self._D_temp.forward(fake_imgs_masked, hidden_disc)
             d_fake_desired_img_masked_prob = self._D.forward(fake_imgs_masked)
 
             #fake disc losses
             self._loss_g_masked_fake += self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
-            self._loss_g_temp_fake += self._compute_loss_D(dtmp_fake_desired_img_masked_prob, True) * self._opt.lambda_D_temp
-            self._loss_g_masked_cond += self._criterion_D_cond(d_fake_desired_img_masked_cond, real_cond)*self._opt.lambda_D_cond
-
             self._loss_g_mask_1 += torch.mean(fake_img_mask) * self._opt.lambda_mask
             self._loss_g_mask_1_smooth += self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
             self._loss_g_cyc += self._criterion_cycle(real_img, fake_imgs_masked) *self._opt.lambda_cyc
@@ -362,6 +350,10 @@ class GANimation(BaseModel):
         fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
         self._loss_g_bidirec_cyc = self._bidirectional_loss(fake_videos_masked)
+
+        dtmp_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D_temp.forward(fake_videos_masked)
+        self._loss_g_temp_fake = self._compute_loss_D(dtmp_fake_desired_img_masked_prob, True) * self._opt.lambda_D_temp
+        self._loss_g_masked_cond = self._criterion_D_cond(d_fake_desired_img_masked_cond, self._annotations[:, 1:, :])*self._opt.lambda_D_cond
 
         # keep data for visualization
         if keep_data_for_visuals:
@@ -389,9 +381,6 @@ class GANimation(BaseModel):
         self._loss_d_cond = 0
         self._loss_d_temp_real = 0
         self._loss_d_temp_fake = 0
-        fake_imgs_masked = None
-        hidden_fake = None
-        hidden_real = None
         fake_videos_masked = list()
         for idx in range(1, self._opt.frames_cnt):
             real_img = self._frames[:, idx, :, :, :]
@@ -401,23 +390,23 @@ class GANimation(BaseModel):
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
-            dtmp_real_img_prob, d_real_img_cond, hidden_real = self._D_temp.forward(real_img, hidden_real)
-            self._loss_d_temp_real += self._compute_loss_D(dtmp_real_img_prob, True) * self._opt.lambda_D_temp
-            self._loss_d_cond += self._criterion_D_cond(d_real_img_cond, real_cond)*self._opt.lambda_D_cond
-
             d_real_img_prob = self._D.forward(real_img)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
 
             # D(fake_I)
-            dtmp_fake_desired_img_prob, _, hidden_fake = self._D_temp.forward(fake_imgs_masked.detach(), hidden_fake)
-            self._loss_d_temp_fake += self._compute_loss_D(dtmp_fake_desired_img_prob, False) * self._opt.lambda_D_temp
-
             d_fake_desired_img_prob = self._D.forward(fake_imgs_masked.detach())
             self._loss_d_fake += self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
 
             fake_videos_masked.append(fake_imgs_masked)
 
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
+
+        dtmp_real_img_prob, d_real_img_cond = self._D_temp.forward(self._frames[:, 1:, :, :, :])
+        self._loss_d_temp_real = self._compute_loss_D(dtmp_real_img_prob, True) * self._opt.lambda_D_temp
+        self._loss_d_cond = self._criterion_D_cond(d_real_img_cond, self._annotations[:, 1:, :])*self._opt.lambda_D_cond
+
+        dtmp_fake_desired_img_prob, _ = self._D_temp.forward(fake_videos_masked.detach())
+        self._loss_d_temp_fake = self._compute_loss_D(dtmp_fake_desired_img_prob, False) * self._opt.lambda_D_temp
 
 
 
@@ -444,9 +433,9 @@ class GANimation(BaseModel):
         # penalize gradients
         grad = grad.view(grad.size(0), -1)
         grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
-        self._loss_d_gp += torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
+        loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
 
-        return self._loss_d_gp, interpolated
+        return loss_d_gp
 
     def _compute_loss_D(self, estim, is_real):
         return -torch.mean(estim) if is_real else torch.mean(estim)
