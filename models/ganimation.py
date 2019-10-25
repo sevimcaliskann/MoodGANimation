@@ -252,7 +252,7 @@ class GANimation(BaseModel):
             self._optimizer_D.step()
             self._optimizer_D_temp.zero_grad()
             loss_D_temp.backward()
-            #torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 1)
+            torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 1)
             self._optimizer_D_temp.step()
 
             self._loss_d_gp = 0
@@ -264,8 +264,8 @@ class GANimation(BaseModel):
             self._optimizer_D.step()
 
 
-            alpha = torch.rand(self._B, 1, 1, 1, 1).cuda().expand_as(fake_vids_masked)
-            interpolated = Variable(alpha * self.frames[:, 1:, :, :, :].detach() + (1 - alpha) * fake_vids_masked.detach(), requires_grad=True)
+            '''alpha = torch.rand(self._B, 1, 1, 1, 1).cuda().expand_as(fake_vids_masked)
+            interpolated = Variable(alpha * self._frames[:, 1:, :, :, :].detach() + (1 - alpha) * fake_vids_masked.detach(), requires_grad=True)
             interpolated_prob, _ = self._D_temp(interpolated)
 
             grad = torch.autograd.grad(outputs=interpolated_prob,
@@ -281,7 +281,7 @@ class GANimation(BaseModel):
             self._loss_d_temp_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
             self._optimizer_D_temp.zero_grad()
             self._loss_d_temp_gp.backward()
-            self._optimizer_D_temp.step()
+            self._optimizer_D_temp.step()'''
 
 
             # train G

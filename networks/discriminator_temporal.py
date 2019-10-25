@@ -48,6 +48,7 @@ class DiscriminatorTemporal(NetworkBase):
         hidden = None
         reg = list()
         for idx in range(frames.size(1)):
+	    x = frames[:, idx, :, :, :]
             h = self.main(x)
             if hidden is None:
                 out = self.gru(h)
