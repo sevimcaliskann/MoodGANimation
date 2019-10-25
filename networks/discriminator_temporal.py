@@ -62,7 +62,7 @@ class DiscriminatorTemporal(NetworkBase):
         return out_real.squeeze(), torch.stack(reg, dim=1)
 
     def load_from_checkpoint(self, save_dir, epoch_label):
-        load_filename = 'net_epoch_%s_id_D.pth' % (epoch_label)
+        load_filename = 'net_epoch_%s_id_D_temp.pth' % (epoch_label)
         load_path = os.path.join(save_dir, load_filename)
         state_dict = torch.load(load_path, map_location='cuda:0')
         own_state = self.state_dict()
