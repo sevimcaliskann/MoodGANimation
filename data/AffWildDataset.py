@@ -115,12 +115,9 @@ class AffWildDataset(DatasetBase):
         while (start+i) < frames_num and len(frame_ids)<cnt:
             key = id + '_aligned/frame_det_00_{:06d}'.format(start+i)
             if key in self._moods:
-                frame_ids.append()
+                frame_ids.append(key)
             i += 1
-        if self._opt.cond_nc==2:
-            annotations = np.array([data[id] for id in frame_ids])
-        elif self._opt.cond_nc>2:
-            annotations = np.array([self._moods[id.split('/')[-1][:-4]] for id in frame_ids])
+        annotations = np.array([self._moods[id] for id in frame_ids])
         return annotations, frame_ids
 
 
