@@ -122,7 +122,7 @@ class MorphFacesInTheWild:
         length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
         #start = np.random.randint(0, length-self._opt.frames_cnt)
-        start = 2970
+        start = 422
         print('start face idx: ', start)
         video.set(1, start)
 
