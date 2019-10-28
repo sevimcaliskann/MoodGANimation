@@ -373,7 +373,7 @@ class GANimation(BaseModel):
 
 
 
-        return self._loss_g_masked_fake + self._loss_g_cyc + self._loss_g_temp_fake + self._loss_g_bidirec_cyc + \
+        return self._loss_g_masked_fake + self._loss_g_cyc + self._loss_g_temp_fake + \
                self._loss_g_mask_1 + self._loss_g_mask_1_smooth + self._loss_g_masked_cond
 
 
