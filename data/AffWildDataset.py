@@ -74,7 +74,6 @@ class AffWildDataset(DatasetBase):
         self._root = self._opt.data_dir
         self._imgs_dir = os.path.join(self._root, self._opt.train_images_folder) if self._is_for_train else os.path.join(self._root, self._opt.test_images_folder)
         use_ids_filepath = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
-        self._frames_count = pickle.load(open(self._opt.vid_frames_nums, 'rb'))
         #self._annotations_dir = self._opt.annotations_folder
 
         # read ids
@@ -106,17 +105,12 @@ class AffWildDataset(DatasetBase):
 
 
     def _get_annotations_by_id(self, id, cnt):
-        frames_num = self._frames_count[id]
-        start = random.randint(0, frames_num - 1)
-        frame_ids = list()
-        i = 0
-        while (start+i) < frames_num and len(frame_ids)<cnt:
-            key = id + '_aligned/frame_det_00_{:06d}'.format(start+i)
-            if key in self._moods:
-                frame_ids.append(key)
-            i += 1
+        start = random.randint(0, len(self._moods) - cnt -1 )
+        end = start + cnt
+        frame_ids = self._moods.keys()[start:end]
         annotations = np.array([self._moods[id] for id in frame_ids])
         return annotations, frame_ids
+
 
 
 
