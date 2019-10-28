@@ -8,6 +8,7 @@ from networks.networks import NetworksFactory
 import os
 import numpy as np
 import torch.nn
+from utils.losses import CCCLoss
 
 
 class GANimation(BaseModel):
@@ -93,7 +94,8 @@ class GANimation(BaseModel):
     def _init_losses(self):
         self._criterion_cycle = torch.nn.L1Loss().cuda()
         self._robust_cycle = torch.nn.SmoothL1Loss().cuda()
-        self._criterion_D_cond = torch.nn.MSELoss().cuda()
+        #self._criterion_D_cond = torch.nn.MSELoss().cuda()
+        self._criterion_D_cond = CCCLoss().cuda()
         self._criterion_perceptual = torch.nn.MSELoss().cuda()
 
         # init losses G
