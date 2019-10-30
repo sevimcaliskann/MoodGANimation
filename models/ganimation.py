@@ -8,7 +8,7 @@ from networks.networks import NetworksFactory
 import os
 import numpy as np
 import torch.nn
-from utils.losses import CCCLoss
+from utils.losses import XSigmoidLoss
 
 
 class GANimation(BaseModel):
@@ -95,7 +95,7 @@ class GANimation(BaseModel):
         self._criterion_cycle = torch.nn.L1Loss().cuda()
         self._robust_cycle = torch.nn.SmoothL1Loss().cuda()
         #self._criterion_D_cond = torch.nn.MSELoss().cuda()
-        self._criterion_D_cond = CCCLoss().cuda()
+        self._criterion_D_cond = XSigmoidLoss().cuda()
         self._criterion_perceptual = torch.nn.MSELoss().cuda()
 
         # init losses G
@@ -254,7 +254,7 @@ class GANimation(BaseModel):
             self._optimizer_D.step()
             self._optimizer_D_temp.zero_grad()
             loss_D_temp.backward()
-            torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 1)
+            #torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 1)
             self._optimizer_D_temp.step()
 
             self._loss_d_gp = 0
@@ -266,7 +266,7 @@ class GANimation(BaseModel):
             self._optimizer_D.step()
 
 
-            '''alpha = torch.rand(self._B, 1, 1, 1, 1).cuda().expand_as(fake_vids_masked)
+            alpha = torch.rand(self._B, 1, 1, 1, 1).cuda().expand_as(fake_vids_masked)
             interpolated = Variable(alpha * self._frames[:, 1:, :, :, :].detach() + (1 - alpha) * fake_vids_masked.detach(), requires_grad=True)
             interpolated_prob, _ = self._D_temp(interpolated)
 
@@ -279,11 +279,11 @@ class GANimation(BaseModel):
 
             # penalize gradients
             grad = grad.view(grad.size(0), -1)
-            grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
+            grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1)+1e-8)
             self._loss_d_temp_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
             self._optimizer_D_temp.zero_grad()
             self._loss_d_temp_gp.backward()
-            self._optimizer_D_temp.step()'''
+            self._optimizer_D_temp.step()
 
 
             # train G
@@ -467,7 +467,7 @@ class GANimation(BaseModel):
                                  ('g_temp', self._loss_g_temp_fake.detach()),
                                  ('d_temp_real', self._loss_d_temp_real.detach()),
                                  ('d_temp_fake', self._loss_d_temp_fake.detach()),
-                                 #('d_temp_gp', self._loss_d_temp_gp.detach()),
+                                 ('d_temp_gp', self._loss_d_temp_gp.detach()),
                                  #('g_perceptual', self._loss_g_perceptual.detach()),
                                  #('g_temporal', self._loss_g_temporal.detach()),
                                  #('g_m2_s', self._loss_g_mask_2_smooth.detach()),
