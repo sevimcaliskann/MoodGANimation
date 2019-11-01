@@ -30,15 +30,18 @@ class AFEWDataset(DatasetBase):
             sample_id = self._ids[index]
             annotations, frame_ids = self._get_annotations_by_id(sample_id, self._opt.frames_cnt)
 
+	    first_ann = np.copy(annotations[0])
+	    annotations = torch.from_numpy(annotations.reshape((-1, self._opt.cond_nc)))
+
             for frame_id in frame_ids:
                 img, img_path = self._get_img_by_id(os.path.join(self._imgs_dir, frame_id))
+		img = self._transform(Image.fromarray(img))
                 
                 if img is None:
-                    print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, sample_id)
-                    frame_list.clear()
+                    print 'error reading image %s, skipping sample' % os.path.join(self._imgs_dir, frame_id)
+                    del frame_list[:]
                     break
                 else:
-                    img = self._transform(Image.fromarray(img))
                     frame_list.append(img)
 
 
@@ -48,15 +51,14 @@ class AFEWDataset(DatasetBase):
 
 
         first_frame = frame_list[0].clone()
-        first_ann = np.copy(annotations[0])
 
         #frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
-        annotations = torch.from_numpy(annotations.reshape((-1, self._opt.cond_nc)))
+        
         first_ann = torch.from_numpy(first_ann.reshape((-1, self._opt.cond_nc)))
-        sample = {'frames': frames,
-                  'annotations': annotations,
-                  'first_frame':first_frame,
-                  'first_ann':first_ann
+        sample = {'frames': frames.float(),
+                  'annotations': annotations.float(),
+                  'first_frame':first_frame.float(),
+                  'first_ann':first_ann.float()
                   }
         return sample
 
@@ -81,6 +83,7 @@ class AFEWDataset(DatasetBase):
 
         # dataset size
         self._dataset_size = len(self._ids)
+	self.dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
     def _create_transform(self):
         if self._is_for_train:
