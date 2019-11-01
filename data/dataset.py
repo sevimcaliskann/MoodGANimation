@@ -20,6 +20,9 @@ class DatasetFactory:
         elif dataset_name=='affwild':
             from data.AffWildDataset import AffWildDataset
             dataset = AffWildDataset(opt, is_for_train)
+        elif dataset_name=='afew':
+            from data.AFEWDataset import AFEWDataset
+            dataset = AFEWDataset(opt, is_for_train)
         else:
             raise ValueError("Dataset [%s] not recognized." % dataset_name)
 
