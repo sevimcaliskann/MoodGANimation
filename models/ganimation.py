@@ -234,13 +234,13 @@ class GANimation(BaseModel):
             #torch.nn.utils.clip_grad_norm_(self._D.parameters(), 0.25)
             self._optimizer_D.step()
 
-            loss_D_gp = 0
+            self._loss_d_gp = 0
             hidden = None
             for i in range(fake_vids_masked.size(1)):
                 loss_D_inc, hidden = self._gradinet_penalty_D(self._first, fake_vids_masked[:, i, :, :, :], hidden)
-                loss_D_gp += loss_D_inc
+                self._loss_d_gp += loss_D_inc
             self._optimizer_D.zero_grad()
-            loss_D_gp.backward()
+            self._loss_d_gp.backward()
             self._optimizer_D.step()
 
             # train G
@@ -354,9 +354,9 @@ class GANimation(BaseModel):
         # penalize gradients
         grad = grad.view(grad.size(0), -1)
         grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
-        self._loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
+        loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
 
-        return self._loss_d_gp, hidden
+        return loss_d_gp, hidden
 
     def _compute_loss_D(self, estim, is_real):
         return -torch.mean(estim) if is_real else torch.mean(estim)
@@ -384,10 +384,10 @@ class GANimation(BaseModel):
                                  #('g_color_maps', self._loss_color_maps.detach()),
 
                                  #('g_idt', self._loss_g_idt.detach()),
+				 ('d_gp', self._loss_d_gp.detach()),
                                  ('d_real', self._loss_d_real.detach()),
                                  ('d_cond', self._loss_d_cond.detach()),
                                  ('d_fake', self._loss_d_fake.detach())])
-                                 #('d_gp', self._loss_d_gp.detach())])
 
         return loss_dict
 
