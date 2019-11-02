@@ -29,6 +29,8 @@ class AFEWDataset(DatasetBase):
 
             sample_id = self._ids[index]
             annotations, frame_ids = self._get_annotations_by_id(sample_id, self._opt.frames_cnt)
+	    if annotations is None:
+		continue
 
 	    first_ann = np.copy(annotations[0])
 	    annotations = torch.from_numpy(annotations.reshape((-1, self._opt.cond_nc)))
@@ -105,7 +107,9 @@ class AFEWDataset(DatasetBase):
     def _get_annotations_by_id(self, id, cnt):
         file_path = os.path.join(self._annotations_dir, id + '.pkl')
         moods = pickle.load(open(file_path, 'rb'))
-        start = random.randint(0, len(moods) - cnt -1 )
+	if (len(moods)-1)<cnt:
+	    return None, None
+        start = random.randint(0, len(moods)-1 - cnt )
         end = start + cnt
         frame_ids = moods.keys()[start:end]
         annotations = np.array([moods[id] for id in frame_ids])
