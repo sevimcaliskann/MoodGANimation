@@ -16,10 +16,10 @@ def get_data(filepaths):
     data = dict()
     for filepath in tqdm(filepaths):
         content = np.loadtxt(filepath, delimiter=', ', skiprows=1)
-	row = content[2:19]
-	if len(row) == 17:
-            #data[os.path.basename(filepath)] = row
-            data[os.path.basename(filepath[:-4])] = row
+	folder = filepath.split('/')[-1]
+        for row in content:
+            k = folder[:-4] + '/' + folder[:-4] + '_aligned/frame_det_00_{:06d}.jpg'.format(int(row[0]))
+            data[k] = row[2:19]
 
     return data
 
