@@ -7,7 +7,7 @@ from .models import BaseModel
 from networks.networks import NetworksFactory
 import os
 import numpy as np
-from utils.losses import XSigmoidLoss
+#from utils.losses import XSigmoidLoss
 
 
 class GANimation(BaseModel):
@@ -78,7 +78,7 @@ class GANimation(BaseModel):
         # define loss functions
         self._criterion_cycle = torch.nn.L1Loss().cuda()
         self._robust_cycle = torch.nn.SmoothL1Loss().cuda()
-        self._criterion_D_cond = XSigmoidLoss().cuda()
+        self._criterion_D_cond = torch.nn.MSELoss().cuda()
 
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
