@@ -119,29 +119,18 @@ class MorphFacesInTheWild:
 
     def get_n_faces_from_video(self, count):
         video = cv2.VideoCapture(self._opt.groundtruth_video)
-        length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        #length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        length = len(self._moods)
         video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
-        #start = np.random.randint(0, length-self._opt.frames_cnt)
-        start = 1163
-        video.set(1, start)
-
-        success, start_face = video.read()
-        start_face = self.crop_face(cv2.cvtColor(start_face, cv2.COLOR_RGB2BGR))
-        if not success:
-            print('video %s cannot be read!' % self._opt.groundtruth_video)
-            video.release()
-            return None
-
+        start = np.random.randint(0, length-self._opt.frames_cnt)
+        anns = self._moods[start:start+count]
         ground_faces = list()
-        anns = list()
-        anns.append(np.expand_dims(np.asarray(self._moods[video_name + str(start+1)]), axis=0))
-        ground_faces.append(start_face)
-        for i in range(1, count):
+        for ann in anns:
+            frame_num = int(ann.split('_')[-1])
+            video.set(1, frame_num)
             success, face = video.read()
-            face = self.crop_face(face)
-            face = cv2.cvtColor(face, cv2.COLOR_RGB2BGR)
+            face = self.crop_face(cv2.cvtColor(start_face, cv2.COLOR_RGB2BGR))
             ground_faces.append(face)
-            anns.append(np.expand_dims(np.asarray(self._moods[video_name + str(start+i+1)]), axis=0))
         video.release()
         return np.squeeze(np.stack(ground_faces, axis=0)), anns
 
@@ -226,8 +215,11 @@ def main():
     print('BEGINING')
     opt = TestOptions().parse()
     morph = MorphFacesInTheWild(opt)
-    morph.random_generation(False)
+    #morph.random_generation(False)
     img, expression = morph.generate_from_groundtruth()
+    img = cv_utils.read_cv2_img(opt.input_path)
+    morph.morph_file(opt.input_path, expression, img=img)
+
 
     #morph = MorphFacesInTheWild(opt, is_comparison=True)
     #morph.morph_file(opt.groundtruth_video, expression, img=img)

@@ -7,7 +7,7 @@ python test.py \
 --input_path /home/sevim/Downloads/faces/imgs/face17.jpg \
 --output_dir /home/sevim/Downloads/master_thesis_study_documents/code-examples/GANimation/test_outputs \
 --checkpoints_dir /home/sevim/Downloads/master_thesis_study_documents/code-examples/ganimation_checkpoints \
---name unet_gen \
+--name gru_disc2 \
 --comparison_model_name perceptual_no_cycle_nonrecurrent \
 --cond_nc 4 \
 --load_epoch -1 \
