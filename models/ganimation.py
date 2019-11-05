@@ -351,7 +351,7 @@ class GANimation(BaseModel):
         fake_videos = torch.transpose(torch.stack(fake_videos), 0, 1)
         fake_mask_videos = torch.transpose(torch.stack(fake_mask_videos), 0, 1)
         fake_videos_masked = torch.transpose(torch.stack(fake_videos_masked), 0, 1)
-        self._loss_g_bidirec_cyc = self._bidirectional_loss(fake_videos_masked)
+        #self._loss_g_bidirec_cyc = self._bidirectional_loss(fake_videos_masked)
 
         dtmp_fake_desired_img_masked_prob, d_fake_desired_img_masked_cond = self._D_temp.forward(fake_videos_masked)
         self._loss_g_temp_fake = self._compute_loss_D(dtmp_fake_desired_img_masked_prob, True) * self._opt.lambda_D_temp
@@ -457,14 +457,14 @@ class GANimation(BaseModel):
                                  ('g_mskd_fake', self._loss_g_masked_fake.detach()),
                                  ('g_mskd_cond', self._loss_g_masked_cond.detach()),
                                  ('g_cyc', self._loss_g_cyc.detach()),
-                                 ('g_bidirec_cyc', self._loss_g_bidirec_cyc.detach()),
+                                 #('g_bidirec_cyc', self._loss_g_bidirec_cyc.detach()),
                                  #('g_rgb', self._loss_rec_real_img_rgb.detach()),
                                  #('g_rgb_un', self._loss_g_unmasked_rgb.detach()),
                                  #('g_rgb_s', self._loss_g_fake_imgs_smooth.detach()),
                                  ('g_m1', self._loss_g_mask_1.detach()),
                                  #('g_m2', self._loss_g_mask_2.detach()),
                                  ('g_m1_s', self._loss_g_mask_1_smooth.detach()),
-                                 ('g_temp', self._loss_g_temp_fake.detach()),
+                                 ('g_temp_fake', self._loss_g_temp_fake.detach()),
                                  ('d_temp_real', self._loss_d_temp_real.detach()),
                                  ('d_temp_fake', self._loss_d_temp_fake.detach()),
                                  ('d_temp_gp', self._loss_d_temp_gp.detach()),
