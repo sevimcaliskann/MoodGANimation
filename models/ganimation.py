@@ -7,7 +7,7 @@ from .models import BaseModel
 from networks.networks import NetworksFactory
 import os
 import numpy as np
-#from utils.losses import XSigmoidLoss
+from utils.losses import XSigmoidLoss
 
 
 class GANimation(BaseModel):
@@ -78,7 +78,7 @@ class GANimation(BaseModel):
         # define loss functions
         self._criterion_cycle = torch.nn.L1Loss().cuda()
         self._robust_cycle = torch.nn.SmoothL1Loss().cuda()
-        self._criterion_D_cond = torch.nn.MSELoss().cuda()
+        self._criterion_D_cond = XSigmoidLoss().cuda()
 
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
@@ -434,12 +434,12 @@ class GANimation(BaseModel):
 
         if self._is_train:
             # load D
-            #self._load_network(self._D, 'D', load_epoch)
-            self._D.load_from_checkpoint(self._save_dir, load_epoch)
+            self._load_network(self._D, 'D', load_epoch)
+            #self._D.load_from_checkpoint(self._save_dir, load_epoch)
 
             # load optimizers
-            #self._load_optimizer(self._optimizer_G, 'G', load_epoch)
-            #self._load_optimizer(self._optimizer_D, 'D', load_epoch)
+            self._load_optimizer(self._optimizer_G, 'G', load_epoch)
+            self._load_optimizer(self._optimizer_D, 'D', load_epoch)
 
     def update_learning_rate(self):
         # updated learning rate G
