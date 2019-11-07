@@ -95,13 +95,13 @@ class MorphFacesInTheWild:
 
     def random_generation(self, get_start_from_video=False):
         val = np.expand_dims(np.arange(-1.0,1.0,float(2)/self._opt.frames_cnt), axis=1)
-        aro = np.expand_dims(np.arange(-1.0,1.0,float(2)/self._opt.frames_cnt), axis=1)
-        #val = np.expand_dims(np.zeros(10), axis=1)
+        #aro = np.expand_dims(np.arange(-1.0,1.0,float(2)/self._opt.frames_cnt), axis=1)
+        aro = np.expand_dims(np.zeros(self._opt.frames_cnt), axis=1)
 
         third = np.expand_dims(np.zeros(self._opt.frames_cnt), axis=1)
         fourth = np.expand_dims(-1*np.ones(self._opt.frames_cnt), axis=1)
         #expression = np.concatenate((val,third, third, fourth), axis=1)
-        expression = np.concatenate((aro,val), axis=1) if self._opt.cond_nc == 2 else \
+        expression = np.concatenate((val,aro), axis=1) if self._opt.cond_nc == 2 else \
                         np.concatenate((val,third, third, fourth), axis=1)
 
         traj = animate_traj(expression, self._out_dir)
@@ -123,6 +123,7 @@ class MorphFacesInTheWild:
         length = len(self._moods)
         video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
         start = np.random.randint(0, length-self._opt.frames_cnt)
+        print('start: ', start)
         ids = self._moods.keys()[start:start+count]
         anns = [np.expand_dims(self._moods[id], axis=0) for id in ids]
         ground_faces = list()
@@ -161,14 +162,15 @@ class MorphFacesInTheWild:
 
 def get_moods_from_pickle(path, cond_nc):
     data = pickle.load(open(path, 'rb'))
-    if cond_nc==2:
+    return data
+    '''if cond_nc==2:
         moods = dict()
         for key, val in data.items():
             key = key.split('/')[-1][:-4]
             moods[key] = val
         return moods
     else:
-        return data
+        return data'''
 
 def animate_traj(exp, save_path):
     fig = plt.figure(figsize=(10,10))
@@ -216,11 +218,10 @@ def main():
     print('BEGINING')
     opt = TestOptions().parse()
     morph = MorphFacesInTheWild(opt)
-    #morph.random_generation(False)
+    morph.random_generation(False)
     img, expression = morph.generate_from_groundtruth()
-    img = cv_utils.read_cv2_img(opt.input_path)
-    morph.morph_file(opt.input_path, expression, img=img)
-
+    #img = cv_utils.read_cv2_img(opt.input_path)
+    #morph.morph_file(opt.input_path, expression, img=img)
 
     #morph = MorphFacesInTheWild(opt, is_comparison=True)
     #morph.morph_file(opt.groundtruth_video, expression, img=img)
