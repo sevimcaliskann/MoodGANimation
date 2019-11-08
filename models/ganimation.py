@@ -109,6 +109,7 @@ class GANimation(BaseModel):
         self._loss_g_perceptual = Variable(self._Tensor([0]))
         self._loss_g_temporal = Variable(self._Tensor([0]))
         self._loss_g_masked_cond = Variable(self._Tensor([0]))
+        self._loss_g_frame_cond = Variable(self._Tensor([0]))
         #self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
         #self._loss_inv_mask = Variable(self._Tensor([0]))
         #self._loss_color_maps = Variable(self._Tensor([0]))
@@ -121,6 +122,7 @@ class GANimation(BaseModel):
         self._loss_d_fake = Variable(self._Tensor([0]))
         self._loss_d_gp = Variable(self._Tensor([0]))
         self._loss_d_cond = Variable(self._Tensor([0]))
+        self._loss_d_frame_cond = Variable(self._Tensor([0]))
 
         self._loss_d_temp_real = Variable(self._Tensor([0]))
         self._loss_d_temp_fake = Variable(self._Tensor([0]))
@@ -161,12 +163,13 @@ class GANimation(BaseModel):
         if not self._is_train:
             first_frame = Variable(self._first_frame, volatile=True)
             fake_imgs_masked = None
+            feats_fake = None
             fake_videos = list()
             fake_mask_videos = list()
             fake_videos_masked = list()
             for idx in range(1, self._opt.frames_cnt):
                 real_cond = Variable(self._input_annotations[:, idx, :], volatile=True)
-                fake_imgs, fake_img_mask = self._G.forward(first_frame, real_cond)
+                fake_imgs, fake_img_mask, feats_fake = self._G.forward(self._first, real_cond, feats_fake)
                 fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
                 fake_imgs_masked = fake_img_mask * first_frame + (1 - fake_img_mask) * fake_imgs
 
@@ -254,19 +257,20 @@ class GANimation(BaseModel):
             self._optimizer_D.step()
             self._optimizer_D_temp.zero_grad()
             loss_D_temp.backward()
-            torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 0.5)
+            #torch.nn.utils.clip_grad_norm_(self._D_temp.parameters(), 0.5)
             self._optimizer_D_temp.step()
 
             self._loss_d_gp = 0
+            feats_disc = None
             for i in range(fake_vids_masked.size(1)):
-                loss_D_gp_inc = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach())
+                loss_D_gp_inc, _, feats_disc = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach(), feats_disc)
                 self._loss_d_gp += loss_D_gp_inc
             self._optimizer_D.zero_grad()
             self._loss_d_gp.backward()
             self._optimizer_D.step()
 
 
-            '''alpha = torch.rand(self._B, 1, 1, 1, 1).cuda().expand_as(fake_vids_masked)
+            alpha = torch.rand(self._B, 1, 1, 1, 1).cuda().expand_as(fake_vids_masked)
             interpolated = Variable(alpha * self._frames[:, 1:, :, :, :].detach() + (1 - alpha) * fake_vids_masked.detach(), requires_grad=True)
             interpolated_prob, _ = self._D_temp(interpolated)
 
@@ -283,7 +287,7 @@ class GANimation(BaseModel):
             self._loss_d_temp_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_temp_gp
             self._optimizer_D_temp.zero_grad()
             self._loss_d_temp_gp.backward()
-            self._optimizer_D_temp.step()'''
+            self._optimizer_D_temp.step()
 
 
             # train G
@@ -322,26 +326,30 @@ class GANimation(BaseModel):
         self._loss_g_mask_1_smooth = 0
         self._loss_g_masked_cond = 0
         self._loss_g_temp_fake = 0
+        self._loss_g_frame_cond = 0
         #self._loss_g_perceptual = 0
 
         fake_videos = list()
+        feats_fake = None
+        feats_disc = None
         fake_mask_videos = list()
         fake_videos_masked = list()
         for idx in range(1, self._opt.frames_cnt):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
+            fake_imgs, fake_img_mask, feats_fake = self._G.forward(self._first, real_cond, feats_fake)
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
-            d_fake_desired_img_masked_prob = self._D.forward(fake_imgs_masked)
+            d_fake_desired_img_masked_prob, d_fake_frame_cond, feats_disc = self._D.forward(fake_imgs_masked, feats_disc)
 
             #fake disc losses
             self._loss_g_masked_fake += self._compute_loss_D(d_fake_desired_img_masked_prob, True) * self._opt.lambda_D_prob
             self._loss_g_mask_1 += torch.mean(fake_img_mask) * self._opt.lambda_mask
             self._loss_g_mask_1_smooth += self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
             self._loss_g_cyc += self._criterion_cycle(real_img, fake_imgs_masked) *self._opt.lambda_cyc
+            self._loss_g_frame_cond += self._criterion_D_cond(d_fake_frame_cond, real_cond)*self._opt.lambda_D_cond
 
 
             fake_videos_masked.append(fake_imgs_masked)
@@ -374,7 +382,8 @@ class GANimation(BaseModel):
 
 
         return self._loss_g_masked_fake + self._loss_g_cyc + self._loss_g_temp_fake + \
-               self._loss_g_mask_1 + self._loss_g_mask_1_smooth + self._loss_g_masked_cond
+               self._loss_g_mask_1 + self._loss_g_mask_1_smooth + self._loss_g_masked_cond + \
+               self._loss_g_frame_cond
 
 
     def _forward_D(self):
@@ -383,20 +392,25 @@ class GANimation(BaseModel):
         self._loss_d_cond = 0
         self._loss_d_temp_real = 0
         self._loss_d_temp_fake = 0
+        self._loss_d_frame_cond = 0
+        feats_fake = None
+        feats_disc_fake = None
+        feats_disc_real = None
         fake_videos_masked = list()
         for idx in range(1, self._opt.frames_cnt):
             real_img = self._frames[:, idx, :, :, :]
             real_cond = self._annotations[:, idx, :]
 
-            fake_imgs, fake_img_mask = self._G.forward(self._first, real_cond)
+            fake_imgs, fake_img_mask, feats_fake = self._G.forward(self._first, real_cond, feats_fake)
             fake_img_mask = self._do_if_necessary_saturate_mask(fake_img_mask, saturate=self._opt.do_saturate_mask)
             fake_imgs_masked = fake_img_mask * self._first + (1 - fake_img_mask) * fake_imgs
 
-            d_real_img_prob = self._D.forward(real_img)
+            d_real_img_prob, d_frame_cond, feats_disc_real = self._D.forward(real_img, feats_disc_real)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
+            self._loss_d_frame_cond += self._criterion_D_cond(d_frame_cond, real_cond)*self._opt.lambda_D_cond
 
             # D(fake_I)
-            d_fake_desired_img_prob = self._D.forward(fake_imgs_masked.detach())
+            d_fake_desired_img_prob, _, feats_disc_fake = self._D.forward(fake_imgs_masked.detach(), feats_disc_fake)
             self._loss_d_fake += self._compute_loss_D(d_fake_desired_img_prob, False) * self._opt.lambda_D_prob
 
             fake_videos_masked.append(fake_imgs_masked)
@@ -413,7 +427,7 @@ class GANimation(BaseModel):
 
 
 
-        return self._loss_d_real + self._loss_d_fake, \
+        return self._loss_d_real + self._loss_d_fake + self._loss_d_frame_cond, \
                 self._loss_d_temp_fake + self._loss_d_temp_real+ self._loss_d_cond, fake_videos_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
@@ -462,6 +476,7 @@ class GANimation(BaseModel):
                                  #('g_rgb_un', self._loss_g_unmasked_rgb.detach()),
                                  #('g_rgb_s', self._loss_g_fake_imgs_smooth.detach()),
                                  ('g_m1', self._loss_g_mask_1.detach()),
+                                 ('g_frame_cond', self._loss_g_frame_cond.detach()),
                                  #('g_m2', self._loss_g_mask_2.detach()),
                                  ('g_m1_s', self._loss_g_mask_1_smooth.detach()),
                                  ('g_temp_fake', self._loss_g_temp_fake.detach()),
@@ -475,6 +490,7 @@ class GANimation(BaseModel):
                                  #('g_color_maps', self._loss_color_maps.detach()),
 
                                  #('g_idt', self._loss_g_idt.detach()),
+                                 ('d_frame_cond', self._loss_d_frame_cond.detach()),
                                  ('d_real', self._loss_d_real.detach()),
                                  ('d_fake', self._loss_d_fake.detach()),
                                  ('d_cond', self._loss_d_cond.detach()),

@@ -25,6 +25,12 @@ class Discriminator(NetworkBase):
         for i in range(1, repeat_num):
             feat_layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1))
             feat_layers.append(nn.LeakyReLU(0.01, inplace=True))
+            #if i <=repeat_num/2:
+            #    self.feat_layers.append(nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
+            #                                 nn.LeakyReLU(0.01, inplace=True)))
+            #else:
+            #    self.feat_layers.append(nn.Sequential(nn.Conv2d(2*curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
+            #                                 nn.LeakyReLU(0.01, inplace=True)))
 
             curr_dim = curr_dim * 2
 
@@ -33,18 +39,23 @@ class Discriminator(NetworkBase):
         self.main = nn.Sequential(*feat_layers)
 
         self.adv = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
-        #self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=128, kernel_sizes=3, n_layers=1)
-        #self.regress = nn.Conv2d(128, c_dim, kernel_size=k_size, bias=False)
+        self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=128, kernel_sizes=3, n_layers=1)
+        self.regress = nn.Conv2d(128, c_dim, kernel_size=k_size, bias=False)
 
 
 
 
-    def forward(self, x):
+    def forward(self, x, hidden=None):
         h = self.main(x)
         out_real = self.adv(h)
-        #out_aux = self.regress(out[-1])
 
-        return out_real.squeeze()
+        if hidden is None:
+            out = self.gru(h)
+        else:
+            out = self.gru(h, hidden)
+        out_aux = self.regress(out[-1])
+
+        return (out_real.squeeze(), out_aux.squeeze(), out)
 
     def load_from_checkpoint(self, save_dir, epoch_label):
         load_filename = 'net_epoch_%s_id_D.pth' % (epoch_label)
@@ -55,3 +66,17 @@ class Discriminator(NetworkBase):
             if name not in own_state:
                 continue
             own_state[name].copy_(param)
+
+    '''def carry_to_cuda(self):
+        for layer in self.feat_layers:
+            layer.cuda()
+        self.conv1.cuda()
+        self.conv2.cuda()
+
+    def get_parameters(self):
+        params = list(self.feat_layers[0].parameters())
+        for idx in range(1, len(self.feat_layers)):
+            params += list(self.feat_layers[idx].parameters())
+        params += list(self.conv1.parameters())
+        params += list(self.conv2.parameters())
+        return params'''
