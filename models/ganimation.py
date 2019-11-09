@@ -263,7 +263,7 @@ class GANimation(BaseModel):
             self._loss_d_gp = 0
             feats_disc = None
             for i in range(fake_vids_masked.size(1)):
-                loss_D_gp_inc, _, feats_disc = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach(), feats_disc)
+                loss_D_gp_inc, feats_disc = self._gradinet_penalty_D(fake_vids_masked[:, i, :, :, :].detach(), feats_disc)
                 self._loss_d_gp += loss_D_gp_inc
             self._optimizer_D.zero_grad()
             self._loss_d_gp.backward()
@@ -431,12 +431,12 @@ class GANimation(BaseModel):
                 self._loss_d_temp_fake + self._loss_d_temp_real+ self._loss_d_cond, fake_videos_masked
         #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
-    def _gradinet_penalty_D(self, fake_imgs_masked):
+    def _gradinet_penalty_D(self, fake_imgs_masked, hidden=None):
         #adaptive = np.mean(np.linalg.norm(self._real_cond.cpu().detach().numpy() - self._desired_cond.cpu().detach().numpy(), axis=1))+1
         # interpolate sample
         alpha = torch.rand(self._B, 1, 1, 1).cuda().expand_as(self._first_frame)
         interpolated = Variable(alpha * self._first_frame.detach() + (1 - alpha) * fake_imgs_masked.detach(), requires_grad=True)
-        interpolated_prob = self._D(interpolated)
+        interpolated_prob, _, hidden = self._D(interpolated, hidden)
 
         # compute gradients
         grad = torch.autograd.grad(outputs=interpolated_prob,
@@ -451,7 +451,7 @@ class GANimation(BaseModel):
         grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
         loss_d_gp = torch.mean((grad_l2norm - 1) ** 2) * self._opt.lambda_D_gp
 
-        return loss_d_gp
+        return loss_d_gp, hidden
 
     def _compute_loss_D(self, estim, is_real):
         return -torch.mean(estim) if is_real else torch.mean(estim)
