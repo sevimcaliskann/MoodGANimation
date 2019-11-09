@@ -349,7 +349,7 @@ class GANimation(BaseModel):
             self._loss_g_mask_1 += torch.mean(fake_img_mask) * self._opt.lambda_mask
             self._loss_g_mask_1_smooth += self._compute_loss_smooth(fake_img_mask) * self._opt.lambda_mask_smooth
             self._loss_g_cyc += self._criterion_cycle(real_img, fake_imgs_masked) *self._opt.lambda_cyc
-            self._loss_g_frame_cond += self._criterion_D_cond(d_fake_frame_cond, real_cond)*self._opt.lambda_D_cond
+            self._loss_g_frame_cond += self._criterion_D_cond(d_fake_frame_cond, real_cond)*self._opt.lambda_D_frame_cond
 
 
             fake_videos_masked.append(fake_imgs_masked)
@@ -407,7 +407,7 @@ class GANimation(BaseModel):
 
             d_real_img_prob, d_frame_cond, feats_disc_real = self._D.forward(real_img, feats_disc_real)
             self._loss_d_real += self._compute_loss_D(d_real_img_prob, True) * self._opt.lambda_D_prob
-            self._loss_d_frame_cond += self._criterion_D_cond(d_frame_cond, real_cond)*self._opt.lambda_D_cond
+            self._loss_d_frame_cond += self._criterion_D_cond(d_frame_cond, real_cond)*self._opt.lambda_D_frame_cond
 
             # D(fake_I)
             d_fake_desired_img_prob, _, feats_disc_fake = self._D.forward(fake_imgs_masked.detach(), feats_disc_fake)

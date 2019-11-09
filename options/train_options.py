@@ -27,6 +27,7 @@ class TrainOptions(BaseOptions):
         self._parser.add_argument('--D_temp_adam_b2', type=float, default=0.999, help='beta2 for D adam')
         self._parser.add_argument('--lambda_D_prob', type=float, default=1, help='lambda for real/fake discriminator loss')
         self._parser.add_argument('--lambda_D_cond', type=float, default=4000, help='lambda for condition discriminator loss')
+        self._parser.add_argument('--lambda_D_frame_cond', type=float, default=4000, help='lambda for condition discriminator loss')
         self._parser.add_argument('--lambda_cyc', type=float, default=10, help='lambda cycle loss')
         self._parser.add_argument('--lambda_bidirec_cyc', type=float, default=10, help='lambda cycle loss')
         self._parser.add_argument('--lambda_D_temp', type=float, default=1, help='lambda temp disc regularization')
