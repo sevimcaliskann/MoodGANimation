@@ -21,17 +21,6 @@ class AusDataset(DatasetBase):
         self._read_dataset_paths()
         self._aus_dict, self._labels = tutils.create_aus_lookup()
 
-        # read dataset
-        #if self._opt.aus_file=='-':
-        #    self._read_dataset_paths_multi()
-        #else:
-        #    self._read_dataset_paths()
-
-        #dlib.cuda.set_device(self._opt.face_gpu_id[0])
-        #self.cnn_face_detector = dlib.cnn_face_detection_model_v1(self._opt.face_detection_model)
-        #print("dlib cuda device: ", dlib.cuda.get_device())
-        #self.cnn_face_detector(io.imread('/scratch_net/zinc/csevim/apps/repos/GANimation/face_crop_model/face.png'), 1)
-
     def __getitem__(self, index):
         assert (index < self._dataset_size)
 

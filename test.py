@@ -94,9 +94,12 @@ class MorphFacesInTheWild:
         return imgs1[label]
 
     def random_generation(self, get_start_from_video=False):
-        val = np.expand_dims(np.arange(-1.0,1.0,float(2)/self._opt.frames_cnt), axis=1)
+        val_end = np.random.rand(1)[0]
+        aro_end = np.random.rand(1)[0]
+        val = np.expand_dims(np.arange(0.0,val_end,val_end/self._opt.frames_cnt), axis=1)
+        aro = np.expand_dims(np.arange(0.0,aro_end,aro_end/self._opt.frames_cnt), axis=1)
         #aro = np.expand_dims(np.arange(-1.0,1.0,float(2)/self._opt.frames_cnt), axis=1)
-        aro = np.expand_dims(np.zeros(self._opt.frames_cnt), axis=1)
+        #aro = np.expand_dims(np.zeros(self._opt.frames_cnt), axis=1)
 
         third = np.expand_dims(np.zeros(self._opt.frames_cnt), axis=1)
         fourth = np.expand_dims(-1*np.ones(self._opt.frames_cnt), axis=1)
@@ -122,7 +125,7 @@ class MorphFacesInTheWild:
         #length = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         length = len(self._moods)
         video_name = self._opt.groundtruth_video.split('/')[-1][:-4]
-        start = 2886#np.random.randint(0, length-self._opt.frames_cnt)
+        start = 4079#np.random.randint(0, length-self._opt.frames_cnt)
         print('start: ', start)
         ids = self._moods.keys()[start:start+count]
         anns = [np.expand_dims(self._moods[id], axis=0) for id in ids]
