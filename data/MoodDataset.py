@@ -1,7 +1,6 @@
 import os.path
 import torchvision.transforms as transforms
 from data.dataset import DatasetBase
-#from tqdm import tqdm
 from PIL import Image
 import random
 import numpy as np
@@ -20,7 +19,6 @@ class MoodDataset(DatasetBase):
     def __getitem__(self, index):
         assert (index < self._dataset_size)
 
-        # start_time = time.time()
         real_img = None
         real_cond = None
         while real_img is None or real_cond is None:
@@ -42,15 +40,6 @@ class MoodDataset(DatasetBase):
 
         desired_cond = self._generate_random_cond(real_cond)
 
-        #if index % 4
-        #if index%4 ==0:
-        #    desired_cond = self._generate_random_cond(real_cond)
-        #else:
-        #    desired_cond = self._generate_random_cond(real_cond, upper = 2.0, lower = 0.5 )
-
-        #real_cond = (real_cond+1)/2
-        #desired_cond = (desired_cond+1)/2
-
 
         # transform data
         img = self._transform(Image.fromarray(real_img))
@@ -63,8 +52,6 @@ class MoodDataset(DatasetBase):
                   'real_img_path': real_img_path
                   }
 
-        # print (time.time() - start_time)
-
         return sample
 
 
@@ -75,7 +62,6 @@ class MoodDataset(DatasetBase):
         ids = np.loadtxt(file_path, delimiter='\t', dtype=np.str)
         ids = [id[:-4] for id in ids]
         return ids
-        #return [id[:-4] for id in ids]
 
     def _read_dataset_paths(self):
         self._root = self._opt.data_dir
@@ -143,9 +129,6 @@ class MoodDataset(DatasetBase):
 
     def _get_img_by_id(self, id):
         filepath = os.path.join(self._imgs_dir, id+'.jpg')
-        #filepath = os.path.join(self._imgs_dir, id)
-        #filepath = os.path.join(self._imgs_dir, id+'_aligned')
-        #filepath = os.path.join(filepath, 'face_det_000000.bmp')
         return cv_utils.read_cv2_img(filepath), filepath
 
     def _generate_random_cond(self, real_cond, upper = 10.0, lower = 0):
@@ -157,13 +140,5 @@ class MoodDataset(DatasetBase):
             if (abs(check)>upper).any() or (abs(check)<lower).any():
                 cond = None
                 continue
-            #mood += np.random.uniform(-0.1, 0.1, mood.shape)
             cond += np.random.uniform(-0.05, 0.05, cond.shape)
-
-
-        #minV = np.amin(cond)
-        #maxV = np.amax(cond)
-	    #if minV != maxV:
-        #        cond -= minV
-        #    cond /= (maxV - minV)
         return cond

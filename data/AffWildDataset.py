@@ -74,15 +74,13 @@ class AffWildDataset(DatasetBase):
         self._root = self._opt.data_dir
         self._imgs_dir = os.path.join(self._root, self._opt.train_images_folder) if self._is_for_train else os.path.join(self._root, self._opt.test_images_folder)
         use_ids_filepath = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
-        #self._annotations_dir = self._opt.annotations_folder
 
         # read ids
         self._ids = self._read_ids(use_ids_filepath)
         print('#data: ', len(self._ids))
 
         moods_file = self._opt.train_info_file if self._is_for_train else self._opt.test_info_file
-        if self._opt.cond_nc>2:
-            self._moods = pickle.load(open(moods_file, 'rb'))
+        self._moods = pickle.load(open(moods_file, 'rb'))
 
         # dataset size
         self._dataset_size = len(self._ids)

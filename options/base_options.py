@@ -25,7 +25,6 @@ class BaseOptions():
         self._parser.add_argument('--test_ids_file', type=str, default='test_ids.csv', help='file containing test ids')
         self._parser.add_argument('--train_images_folder', type=str, default='imgs', help='train images folder')
         self._parser.add_argument('--test_images_folder', type=str, default='imgs', help='test images folder')
-        #self._parser.add_argument('--affectnet_info_file', type=str, default='imgs', help='file to read moods and emo from affectnet')
         self._parser.add_argument('--train_info_file', type=str, default='imgs', help='file to read moods and emo from affectnet')
         self._parser.add_argument('--test_info_file', type=str, default='imgs', help='file to read moods and emo from affectnet')
         self._parser.add_argument('--training_aus_file', type=str, default='aus_openface.pkl', help='file containing samples aus')
@@ -46,7 +45,6 @@ class BaseOptions():
         self._parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         self._parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
         self._parser.add_argument('--do_saturate_mask', action="store_true", default=False, help='do use mask_fake for mask_cyc')
-        self._parser.add_argument('--face_gpu_id', type=str, default='8', help='gpu for pretrained cnn model for face detection')
         self._parser.add_argument('--recurrent', type=str2bool, nargs='?', const=True, default=False, help='activate recurrent training')
         self._initialized = True
 
