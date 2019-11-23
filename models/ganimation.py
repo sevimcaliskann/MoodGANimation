@@ -76,14 +76,12 @@ class GANimation(BaseModel):
 
         # init losses G
         self._loss_g_fake = Variable(self._Tensor([0]))
-        #self._loss_g_cond = Variable(self._Tensor([0]))
         self._loss_g_cyc = Variable(self._Tensor([0]))
         self._loss_g_mask_1 = Variable(self._Tensor([0]))
         self._loss_g_mask_2 = Variable(self._Tensor([0]))
         self._loss_g_idt = Variable(self._Tensor([0]))
         self._loss_g_masked_fake = Variable(self._Tensor([0]))
         self._loss_g_masked_cond = Variable(self._Tensor([0]))
-        #self._loss_g_cyc_cond = Variable(self._Tensor([0]))
         self._loss_g_mask_1_smooth = Variable(self._Tensor([0]))
         self._loss_g_mask_2_smooth = Variable(self._Tensor([0]))
         self._loss_rec_real_img_rgb = Variable(self._Tensor([0]))
@@ -240,9 +238,6 @@ class GANimation(BaseModel):
         rec_real_img_mask = self._do_if_necessary_saturate_mask(rec_real_img_mask, saturate=self._opt.do_saturate_mask)
         rec_real_imgs = rec_real_img_mask * fake_imgs_masked + (1 - rec_real_img_mask) * rec_real_img_rgb
 
-        #d_cyc_desired_img_masked_prob, d_cyc_desired_img_masked_cond = self._D.forward(rec_real_imgs)
-        #self._loss_g_cyc_cond = self._criterion_D_cond(d_cyc_desired_img_masked_cond, self._real_cond) / self._B * self._opt.lambda_D_cond
-
         # l_cyc(G(G(Ic1,c2), c1)*M)
         self._loss_g_cyc = self._criterion_cycle(rec_real_imgs, self._real_img) * self._opt.lambda_cyc
 
@@ -274,11 +269,6 @@ class GANimation(BaseModel):
                self._loss_g_mask_1 + self._loss_g_mask_2 + \
                self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth
 
-        #return self._loss_g_masked_fake + \
-               #self._loss_g_cyc + \
-               #self._loss_g_mask_1 + self._loss_g_mask_2 + \
-               #self._loss_g_mask_1_smooth + self._loss_g_mask_2_smooth
-
     def _forward_D(self):
         # generate fake images
         fake_imgs, fake_img_mask = self._G.forward(self._real_img, self._desired_cond)
@@ -296,7 +286,6 @@ class GANimation(BaseModel):
 
         # combine losses
         return self._loss_d_real + self._loss_d_cond + self._loss_d_fake, fake_imgs_masked
-        #return self._loss_d_real + self._loss_d_fake, fake_imgs_masked
 
     def _gradinet_penalty_D(self, fake_imgs_masked):
         # interpolate sample
@@ -327,19 +316,13 @@ class GANimation(BaseModel):
                torch.sum(torch.abs(mat[:, :, :-1, :] - mat[:, :, 1:, :]))
 
     def get_current_errors(self):
-        loss_dict = OrderedDict([#('g_fake', self._loss_g_fake.detach()),
-                                 #('g_cond', self._loss_g_cond.data[0]),
-                                 ('g_mskd_fake', self._loss_g_masked_fake.detach()),
+        loss_dict = OrderedDict([('g_mskd_fake', self._loss_g_masked_fake.detach()),
                                  ('g_mskd_cond', self._loss_g_masked_cond.detach()),
                                  ('g_cyc', self._loss_g_cyc.detach()),
-                                 #('g_rgb', self._loss_rec_real_img_rgb.detach()),
-                                 #('g_rgb_un', self._loss_g_unmasked_rgb.detach()),
-                                 #('g_rgb_s', self._loss_g_fake_imgs_smooth.detach()),
                                  ('g_m1', self._loss_g_mask_1.detach()),
                                  ('g_m2', self._loss_g_mask_2.detach()),
                                  ('g_m1_s', self._loss_g_mask_1_smooth.detach()),
                                  ('g_m2_s', self._loss_g_mask_2_smooth.detach()),
-                                 #('g_idt', self._loss_g_idt.detach()),
                                  ('d_real', self._loss_d_real.detach()),
                                  ('d_cond', self._loss_d_cond.detach()),
                                  ('d_fake', self._loss_d_fake.detach()),
@@ -355,10 +338,6 @@ class GANimation(BaseModel):
         visuals = OrderedDict()
 
         # input visuals
-        #title_input_img = os.path.basename(self._input_real_img_path[0])
-        '''visuals['1_input_img'] = plot_utils.plot_au(self._vis_real_img, self._vis_real_cond, title=title_input_img)
-        visuals['2_fake_img'] = plot_utils.plot_au(self._vis_fake_img, self._vis_desired_cond)
-        visuals['3_rec_real_img'] = plot_utils.plot_au(self._vis_rec_real_img, self._vis_real_cond)'''
 
         visuals['1_input_img'] = np.flip(self._vis_real_img, axis =2)
         visuals['2_fake_img'] = np.flip(self._vis_fake_img, axis=2)
@@ -369,12 +348,9 @@ class GANimation(BaseModel):
         visuals['7_cyc_img_unmasked'] = np.flip(self._vis_fake_img_unmasked, axis=2)
         visuals['8_real_cond'] = self._vis_real_cond
         visuals['9_desired_cond'] = self._vis_desired_cond
-        # visuals['8_fake_img_mask_sat'] = self._vis_fake_img_mask_saturated
-        # visuals['9_rec_real_img_mask_sat'] = self._vis_rec_real_img_mask_saturated
         visuals['10_batch_real_img'] = np.flip(self._vis_batch_real_img, axis=2)
         visuals['11_batch_fake_img'] = np.flip(self._vis_batch_fake_img, axis=2)
         visuals['12_batch_fake_img_mask'] = np.flip(self._vis_batch_fake_img_mask, axis=2)
-        # visuals['11_idt_img'] = self._vis_idt_img
 
         return visuals
 
