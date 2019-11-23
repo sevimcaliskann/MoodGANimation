@@ -25,13 +25,6 @@ class DiscriminatorTemporal(NetworkBase):
         for i in range(1, repeat_num):
             feat_layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1))
             feat_layers.append(nn.LeakyReLU(0.01, inplace=True))
-            #if i <=repeat_num/2:
-            #    self.feat_layers.append(nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
-            #                                 nn.LeakyReLU(0.01, inplace=True)))
-            #else:
-            #    self.feat_layers.append(nn.Sequential(nn.Conv2d(2*curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
-            #                                 nn.LeakyReLU(0.01, inplace=True)))
-
             curr_dim = curr_dim * 2
 
         k_size = int(image_size / np.power(2, repeat_num))
