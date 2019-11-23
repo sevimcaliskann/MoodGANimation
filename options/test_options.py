@@ -12,8 +12,6 @@ class TestOptions(BaseOptions):
                     help='We are gonna select moods from this dataset of moods')
         self._parser.add_argument('--groundtruth_video', type=str, default='/home/sevim/Downloads/master_thesis_study_documents/code-examples/affwild/videos/105.avi', \
                     help='groundtruth video path')
-        self._parser.add_argument('--comparison_model_name', type=str, default='affwild_per_frame_5frames', help = 'when two models are compared with same images')
-        self._parser.add_argument('--comparison_load_epoch', type=int, default = -1, help = 'comparison models epoch number to load')
         self.is_train = False
 
 
@@ -27,7 +25,6 @@ class TestOptions(BaseOptions):
 
         # set and check load_epoch
         self._opt.load_epoch = self._set_and_check_load_epoch(self._opt.name, self._opt.load_epoch)
-        self._opt.comparison_load_epoch = self._set_and_check_load_epoch(self._opt.comparison_model_name, self._opt.comparison_load_epoch)
 
         # get and set gpus
         self._get_set_gpus()

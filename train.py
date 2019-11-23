@@ -29,16 +29,11 @@ class Train:
 
         self._model = ModelsFactory.get_by_name(self._opt.model, self._opt)
         self._tb_visualizer = TBVisualizer(self._opt)
-        self._writer = SummaryWriter()
-
 
         self._input_imgs = torch.empty(0,3*self._opt.frames_cnt,self._opt.image_size,self._opt.image_size)
         self._fake_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._rec_real_imgs = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
         self._fake_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
         self._fake_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._rec_real_imgs_mask = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
-        #self._cyc_imgs_unmasked = torch.empty(0,3,self._opt.image_size,self._opt.image_size)
         self._real_conds = list()
         self._desired_conds = list()
 
@@ -80,7 +75,6 @@ class Train:
             iter_start_time = time.time()
 
             # display flags
-            #do_visuals = False
             do_visuals = self._last_display_time is None or time.time() - self._last_display_time > self._opt.display_freq_s
             do_print_terminal = time.time() - self._last_print_time > self._opt.print_freq_s or do_visuals
 
@@ -100,7 +94,6 @@ class Train:
 
             # display visualizer
             if do_visuals:
-                #self._display_visualizer_train(self._total_steps)
                 self._display_visualizer_val(i_epoch, self._total_steps)
                 self._last_display_time = time.time()
 
@@ -113,10 +106,6 @@ class Train:
     def _display_terminal(self, iter_start_time, i_epoch, i_train_batch, visuals_flag):
         errors = self._model.get_current_errors()
 
-        '''for key in errors.keys():
-            self._writer.add_scalar('data/%s' % key, errors[key], i_epoch*self._opt.batch_size + i_train_batch)
-        self._writer.add_scalars('data/errors', errors, i_epoch*self._opt.batch_size + i_train_batch)'''
-
 
         t = (time.time() - iter_start_time) / self._opt.batch_size
         self._tb_visualizer.print_current_train_errors(i_epoch, i_train_batch, self._iters_per_epoch, errors, t, visuals_flag)
@@ -124,12 +113,12 @@ class Train:
             if param.grad == None:
                 continue
             print('Generator params: ', name)
-            self._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)
+            self._tb_visualizer._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)
         for name, param in self._model._D.state_dict().items():
             if param.grad==None:
                 continue
             print('Discriminator params: ', name)
-            self._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)'''
+            self._tb_visualizer._writer.add_histogram(name, param.grad.clone().cpu().data.numpy(), total_steps)'''
 
     def _display_visualizer_train(self, total_steps):
         visuals = self._model.get_current_visuals()
@@ -140,20 +129,11 @@ class Train:
         tmp = np.transpose(visuals['2_fake_img'], (2,0,1)).astype(np.float32)
         torch.cat((self._fake_imgs, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
-        #tmp = np.transpose(visuals['3_rec_real_img'], (2,0,1)).astype(np.float32)
-        #torch.cat((self._rec_real_imgs, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
-
         tmp = np.transpose(visuals['4_fake_img_unmasked'], (2,0,1)).astype(np.float32)
         torch.cat((self._fake_imgs_unmasked, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
         tmp = np.transpose(visuals['5_fake_img_mask'], (2,0,1)).astype(np.float32)
         torch.cat((self._fake_imgs_mask, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
-
-        #tmp = np.transpose(visuals['6_rec_real_img_mask'], (2,0,1)).astype(np.float32)
-        #torch.cat((self._rec_real_imgs_mask, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
-
-        #tmp = np.transpose(visuals['7_cyc_img_unmasked'], (2,0,1)).astype(np.float32)
-        #torch.cat((self._cyc_imgs_unmasked, torch.from_numpy(tmp).unsqueeze(0)), dim=0)
 
         tmp = visuals['8_annotations']
         self._real_conds.append(tmp.tolist())

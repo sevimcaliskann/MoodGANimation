@@ -51,7 +51,6 @@ class AffWildDataset(DatasetBase):
         first_frame = frame_list[0].clone()
         first_ann = np.copy(annotations[0])
 
-        #frames = torch.squeeze(frames.view(1, -1, self._opt.image_size, self._opt.image_size))
         annotations = torch.from_numpy(annotations.reshape((-1, self._opt.cond_nc)))
         first_ann = torch.from_numpy(first_ann.reshape((-1, self._opt.cond_nc)))
         sample = {'frames': frames,
@@ -74,15 +73,13 @@ class AffWildDataset(DatasetBase):
         self._root = self._opt.data_dir
         self._imgs_dir = os.path.join(self._root, self._opt.train_images_folder) if self._is_for_train else os.path.join(self._root, self._opt.test_images_folder)
         use_ids_filepath = self._opt.train_ids_file if self._is_for_train else self._opt.test_ids_file
-        self._annotations_dir = self._opt.annotations_folder
 
         # read ids
         self._ids = self._read_ids(use_ids_filepath)
         print('#data: ', len(self._ids))
 
         moods_file = self._opt.train_info_file if self._is_for_train else self._opt.test_info_file
-        if self._opt.cond_nc>2:
-            self._moods = pickle.load(open(moods_file, 'rb'))
+        self._moods = pickle.load(open(moods_file, 'rb'))
 
         # dataset size
         self._dataset_size = len(self._ids)
@@ -105,16 +102,10 @@ class AffWildDataset(DatasetBase):
 
 
     def _get_annotations_by_id(self, id, cnt):
-        path = os.path.join(self._annotations_dir, id + '.pkl')
-        data = pickle.load(open(path, 'rb'))
-        start = random.randint(0, len(data) - 1)
+        start = random.randint(0, len(self._moods) - cnt -1 )
         end = start + cnt
-
-        frame_ids = data.keys()[start:end]
-        if self._opt.cond_nc==2:
-            annotations = np.array([data[id] for id in frame_ids])
-        elif self._opt.cond_nc>2:
-            annotations = np.array([self._moods[id.split('/')[-1][:-4]] for id in frame_ids])
+        frame_ids = self._moods.keys()[start:end]
+        annotations = np.array([self._moods[id] for id in frame_ids])
         return annotations, frame_ids
 
 

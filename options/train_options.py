@@ -25,11 +25,8 @@ class TrainOptions(BaseOptions):
         self._parser.add_argument('--lambda_D_prob', type=float, default=1, help='lambda for real/fake discriminator loss')
         self._parser.add_argument('--lambda_D_cond', type=float, default=4000, help='lambda for condition discriminator loss')
         self._parser.add_argument('--lambda_cyc', type=float, default=10, help='lambda cycle loss')
-        self._parser.add_argument('--lambda_mask_inv', type=float, default=0.01, help='lambda inverse mask regularization')
-        self._parser.add_argument('--lambda_color_maps', type=float, default=0.01, help='lambda color maps regularization')
         self._parser.add_argument('--lambda_mask', type=float, default=0.1, help='lambda mask loss')
         self._parser.add_argument('--lambda_D_gp', type=float, default=10, help='lambda gradient penalty loss')
         self._parser.add_argument('--lambda_mask_smooth', type=float, default=1e-4, help='lambda mask smooth loss')
-        self._parser.add_argument('--annotations_folder', type=str, default='aff wild annotations', help='affwild annotations folder')
 
         self.is_train = True
