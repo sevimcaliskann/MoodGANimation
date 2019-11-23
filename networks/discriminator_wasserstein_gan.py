@@ -25,19 +25,11 @@ class Discriminator(NetworkBase):
         for i in range(1, repeat_num):
             feat_layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1))
             feat_layers.append(nn.LeakyReLU(0.01, inplace=True))
-            #if i <=repeat_num/2:
-            #    self.feat_layers.append(nn.Sequential(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
-            #                                 nn.LeakyReLU(0.01, inplace=True)))
-            #else:
-            #    self.feat_layers.append(nn.Sequential(nn.Conv2d(2*curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1), \
-            #                                 nn.LeakyReLU(0.01, inplace=True)))
-
             curr_dim = curr_dim * 2
 
         k_size = int(image_size / np.power(2, repeat_num))
-        #feat_layers.append(Flatten())
         self.main = nn.Sequential(*feat_layers)
-        
+
         self.adv = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
         self.gru = ConvGRU(input_size=curr_dim, hidden_sizes=128, kernel_sizes=3, n_layers=1)
         self.regress = nn.Conv2d(128, c_dim, kernel_size=k_size, bias=False)
