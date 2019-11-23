@@ -1,15 +1,2 @@
-latent_training/aus_training/*
-latent_training/convnet_models/*
-latent_training/convnet_tensorboard_log/*
-latent_training/fully_connected_models/*
-latent_training/fully_connected_tensorboard_log/*
-latent_training/svm_models/*
-latent_training/svm_tensorboard_log/*
-data/dataset_aus.pyc
-models/ganimation.pyc
-utils/test_utils.pyc
-data/dataset.pyc
-networks/discriminator_wasserstein_gan.pyc
-networks/generator_wasserstein_gan.pyc
-options/base_options.pyc
-options/train_options.pyc
+test_outputs/*
+*.pyc
