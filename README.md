@@ -66,10 +66,10 @@ Results for the interpolation for 3 affectional dimensions can be seen below:
 
 ![Positive Arousal Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal.png)
 
-<p align="center"> ![Negative Arousal Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal_negative.png) </p>
+![Negative Arousal Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal_negative.png)
 
-<p align="center"> ![Positive Dominance Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance_positive.png) </p>
+![Positive Dominance Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance_positive.png)
 
-<p align="center"> ![Negative Dominance Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance.png) </p>
+![Negative Dominance Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance.png)
 
 
