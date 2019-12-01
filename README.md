@@ -60,22 +60,22 @@ Simultaneous edition of multiple AUs in original GANimation model is tested alon
 
 Results for the interpolation for 3 affectional dimensions can be seen below:
 
-Positive Pleasure Scala: \
+Positive Pleasure Scala: <br />
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence.png)
 
-Negative Pleasure Scala: \
+Negative Pleasure Scala: <br />
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence_negative.png)
 
-Positive Arousal Scala: \
+Positive Arousal Scala: <br />
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal.png)
 
-Negative Arousal Scala: \
+Negative Arousal Scala: <br />
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal_negative.png)
 
-Positive Dominance Scala: \
+Positive Dominance Scala: <br />
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance_positive.png)
 
-Negative Dominance Scala: \
+Negative Dominance Scala: <br />
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance.png)
 
 
