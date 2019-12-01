@@ -60,16 +60,22 @@ Simultaneous edition of multiple AUs in original GANimation model is tested alon
 
 Results for the interpolation for 3 affectional dimensions can be seen below:
 
-Positive Pleasure Scala: ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence.png) </p>
+Positive Pleasure Scala: 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence.png) </p>
 
-Negative Pleasure Scala: ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence_negative.png)
+Negative Pleasure Scala: 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence_negative.png)
 
-Positive Arousal Scala: ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal.png)
+Positive Arousal Scala: 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal.png)
 
-Negative Arousal Scala: ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal_negative.png)
+Negative Arousal Scala: 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal_negative.png)
 
-Positive Dominance Scala: ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance_positive.png)
+Positive Dominance Scala: 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance_positive.png)
 
-Negative Dominance Scala: ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance.png)
+Negative Dominance Scala: 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance.png)
 
 
