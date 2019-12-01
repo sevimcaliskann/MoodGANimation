@@ -56,6 +56,6 @@ EmotioNet has annotation of active AUs, unfortunately for training set, it does 
 
 Simultaneous edition of multiple AUs in original GANimation model is tested along with single AU edition. AU combinations represent several emotion categories. So in this manner, it is aimed to assess the power of GANimation for generation of different categories of emotion. For each of action unit in combination, intensity is interpolated from 0 to 1 simultaneously. Results can be seen below:
 
-<img src="https://github.com/sevimcaliskann/MoodGANimation/master/emotions_with_aus.png" width="600" align="middle">
+<img src="https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/emotions_with_aus.png" width="600" align="middle">
 
 
