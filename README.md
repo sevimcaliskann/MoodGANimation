@@ -61,7 +61,7 @@ Simultaneous edition of multiple AUs in original GANimation model is tested alon
 Results for the interpolation for 3 affectional dimensions can be seen below:
 
 Positive Pleasure Scala: \
-![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence.png) </p>
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence.png)
 
 Negative Pleasure Scala: \
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence_negative.png)
