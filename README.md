@@ -62,9 +62,9 @@ Results for the interpolation for 3 affectional dimensions can be seen below:
 
 ![Positive Pleasure Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence.png) </p>
 
-<p align="center"> ![Negative Pleasure Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence_negative.png)
+![Negative Pleasure Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/valence_negative.png)
 
-<p align="center"> ![Positive Arousal Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal.png) </p>
+![Positive Arousal Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal.png)
 
 <p align="center"> ![Negative Arousal Scala](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal_negative.png) </p>
 
