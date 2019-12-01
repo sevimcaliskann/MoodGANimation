@@ -69,7 +69,7 @@ Negative Pleasure Scala: \
 Positive Arousal Scala: \
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal.png)
 
-Negative Arousal Scala: \ 
+Negative Arousal Scala: \
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/arousal_negative.png)
 
 Positive Dominance Scala: \
