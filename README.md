@@ -78,4 +78,6 @@ Positive Dominance Scala: <br />
 Negative Dominance Scala: <br />
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/dominance.png)
 
+In the end, we propose that PAD space is more valueable and interpretable in terms of emotion representation and it gives competitive results in comparison to AU based representation. Discrete representation keeps manifold learning limited and AU representation is sparse. Continuous representation gives potential to exploit emotion manifold extensively.
+
 
