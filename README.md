@@ -1,4 +1,5 @@
-# GANimation: Anatomically-aware Facial Animation from a Single Image
+# MoodGANimation
+## GANimation: Anatomically-aware Facial Animation from a Single Image
 ### [[Project]](http://www.albertpumarola.com/research/GANimation/index.html)[ [Paper]](https://arxiv.org/abs/1807.09251) 
 Official implementation of [GANimation](http://www.albertpumarola.com/research/GANimation/index.html). In this work we introduce a novel GAN conditioning scheme based on Action Units (AU) annotations, which describe in a continuous manifold the anatomical facial movements defining a human expression. Our approach permits controlling the magnitude of activation of each AU and combine several of them. For more information please refer to the [paper](https://arxiv.org/abs/1807.09251).
 
@@ -6,11 +7,11 @@ This code was made public to share our research for the benefit of the scientifi
 
 ![GANimation](http://www.albertpumarola.com/images/2018/GANimation/teaser.png)
 
-## Prerequisites
+### Prerequisites
 - Install PyTorch (version 0.3.1), Torch Vision and dependencies from http://pytorch.org
 - Install requirements.txt (```pip install -r requirements.txt```)
 
-## Data Preparation
+### Data Preparation
 The code requires a directory containing the following files:
 - `imgs/`: folder with all image
 - `aus_openface.pkl`: dictionary containing the images action units.
@@ -24,7 +25,7 @@ To generate the `aus_openface.pkl` extract each image Action Units with [OpenFac
 python data/prepare_au_annotations.py
 ```
 
-## Run
+### Run
 To train:
 ```
 bash launch/run_train.sh
@@ -34,7 +35,7 @@ To test:
 python test --input_path path/to/img
 ```
 
-## Citation
+### Citation
 If you use this code or ideas from the paper for your research, please cite our paper:
 ```
 @inproceedings{pumarola2018ganimation,
@@ -44,7 +45,7 @@ If you use this code or ideas from the paper for your research, please cite our 
     year={2018}
 }
 ```
-# MoodGANimation
+## MoodGANimation
 In recent years, there is a growing interest in affective computing and interpreting the emotional states of users in human-machine interaction. In HMI (Human-machine interaction), systems aim to interact with users in a natural way and in uncontrolled environments. Regarding this, facial expressions are responses to changes in someone’s emotional state or intentions which can be caused by social interactions as well. That’s why facial expressions has recently caught big interest in affective computing. Following this, in association with facial expressions, emotions have different levels of interpretation. Two commonly used ones are discrete categories and affectional dimensions.  
 
 According to discrete categories theory proposed by Ekman, there are 6 universally accepted basic emotions which are happiness, surprise, fear, sadness, anger and disgust. However definition of emotion may be too limited with discrete categorization. Mehrabian and Russell defined emotion in 3 continuous dimensions called pleasure-arousal-dominance. Their argument is that emotions can be mapped to these 3D emotion space. Subtle differences from one expression to another in comparison to sharp categorical changes can be picked out along the affect dimensions. Within these 3 continuous scales, pleasure is ranging from unhappy/unpleasant to happy/pleasant, arousal is ranging from sleepiness/tiredness to frantic excitement and dominance is ranging from submissiveness to influence / autonomy. In most of the studies, they are also moods. In many studies, dominance is usually not considered as o effective dimension and regardless of dominance, 2D arousal and valence space is used. In particular, in this study, we study the utility of three independent affectional dimensions, namely pleasure, arousal and dominance, to describe the perception of human emotion in a continuous manner.
