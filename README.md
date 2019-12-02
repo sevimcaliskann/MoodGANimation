@@ -90,6 +90,7 @@ On top of that, for generating short video clips of expressions and learning spa
 Results from 3 different cases are presented below, same standard from original GANimation is followed: first column is for original image, second column is generated affect frame, third frame is attention mask and last column is color mask map associated with conditional affects. 
 
 - Convolutional GRU on discriminator: <br />
+
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_disc/140_epoch_1501_out.gif)
 
 ![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_disc/167_epoch_1501_out.gif)
