@@ -90,11 +90,33 @@ On top of that, for generating short video clips of expressions and learning spa
 Results from 3 different cases are presented below, same standard from original GANimation is followed: first column is for original image, second column is generated affect frame, third frame is attention mask and last column is color mask map associated with conditional affects. 
 
 - Convolutional GRU on discriminator: <br />
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_disc/140_epoch_1501_out.gif)
+
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_disc/167_epoch_1501_out.gif)
+
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_disc/178_epoch_1501_out.gif)
 
 - Convolutional GRU on U-Net generator: <br />
 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_gen/140_epoch_3036_out.gif)
+
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_gen/167_epoch_3036_out.gif)
+
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/gru_gen/178_epoch_3036_out.gif)
+
 - Separated video and frame discriminators: <br />
 
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/two_disc/140_epoch_601_out.gif)
+
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/two_disc/167_epoch_701_out.gif)
+
+![](https://raw.githubusercontent.com/sevimcaliskann/MoodGANimation/master/example%20outputs/two_disc/178_epoch_701_out.gif)
+
+### How to reproduce results 
+
+#### To train
+
+#### To test
 
 
 
