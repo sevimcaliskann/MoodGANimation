@@ -115,6 +115,41 @@ Results from 3 different cases are presented below, same standard from original 
 
 ### How to reproduce results 
 
+There are different branches for different application sides of project. In __master__ branch, there is original GANimation methods which you can run with action units. You can refer to upper side of blog for details about how to generate data for training and how to run training. After you get familiar with original GANimation model, different branches can be summarized as:
+
+#### Branch *moods_static_images*
+
+In this branch you can train GANimation model with affectional data which we also refer as *moods*. The only difference in this branch is how we read the data. Data reading is managed by *data/MoodDataset.py*. For dataset, AffectNet is chosen since it has both discrete emotion and affect labels (valence and arousal). There are two ways to read the data, one is reading from .csv file. It is customized with respect to original AffectNet annotation csv file. Therefore, if you are using other dataset, my suggestion would be to prepare your data in .pkl file and that's the second way to go. In .pkl file, data is stored as dictionary. For the name of the image, moods are put forward as corresponding values. 
+
+As differences regarding to reading data, *dataset_mode* should be selected as 'mood' and also *train_info_file* stands for annotations file of training partition and *test_info_file* is for test partition similarly.
+
+For training example an example command would look like this:
+
+```
+python GANimation/train.py \
+--data_dir datasets/affectnet \
+--train_images_folder cropped \
+--test_images_folder cropped \
+--train_ids_file datasets/affectnet/train.csv \
+--test_ids_file datasets/affectnet/test.csv \
+--train_info_file datasets/affectnet/train.pkl \
+--test_info_file datasets/affectnet/test_norm_1000_resnet50.pkl \
+--name experiment_1 \
+--nepochs_no_decay 20 \
+--nepochs_decay 10 \
+--batch_size 25 \
+--gpu_ids 0 \
+--lambda_mask_smooth 1e-4 \
+--checkpoints_dir checkpoints \
+--load_epoch -1 \
+--dataset_mode mood \
+--lambda_D_cond 40000 \
+--lambda_mask 0.10 \
+--cond_nc 2 \
+--lambda_D_prob 100 
+
+```
+
 #### To train
 
 #### To test
