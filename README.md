@@ -87,5 +87,15 @@ On top of that, for generating short video clips of expressions and learning spa
 - Convolutional GRU unit is included in generator instead of residual blocks of original model and U-Net connections between encoder and decoder of generator
 - Using 2 discriminators, one is frame discriminator for fake/real discrimination of frames and affect prediction and video discriminator for collection of frames generated from a start point
 
+Results from 3 different cases are presented below, same standard from original GANimation is followed: first column is for original image, second column is generated affect frame, third frame is attention mask and last column is color mask map associated with conditional affects. 
+
+- Convolutional GRU on discriminator: <br />
+
+- Convolutional GRU on U-Net generator: <br />
+
+- Separated video and frame discriminators: <br />
+
+
+
 
 
