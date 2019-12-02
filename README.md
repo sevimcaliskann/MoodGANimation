@@ -80,4 +80,12 @@ Negative Dominance Scala: <br />
 
 In the end, we propose that affect space is more valueable and interpretable in terms of emotion representation and it gives competitive results in comparison to AU based representation. Discrete representation keeps manifold learning limited and AU representation is sparse. Continuous representation gives potential to exploit emotion manifold extensively.
 
+### Generation of Videos of Facial Expressions
+On top of that, for generating short video clips of expressions and learning spatiotemporal features, the model is trained with video clips from AffWild dataset. Short video clips are cropped from videos with their groundtruth labellings. In the beginning, given previous frame, next frame is generated and later on from a start frame, n number of frames are generated in recurrent way. In our case, n is equal to 16. Groundtruth frames are used to steer learning, L1 loss is used between groundtruth and generated frames. There are different methods tested with spatiotemporal expression learning:
+
+- Convolutional GRU unit is included in discriminator before prediction and adversarial layers
+- Convolutional GRU unit is included in generator instead of residual blocks of original model and U-Net connections between encoder and decoder of generator
+- Using 2 discriminators, one is frame discriminator for fake/real discrimination of frames and affect prediction and video discriminator for collection of frames generated from a start point
+
+
 
