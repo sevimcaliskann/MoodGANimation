@@ -123,7 +123,7 @@ In this branch you can train GANimation model with affectional data which we als
 
 As differences regarding to reading data, *dataset_mode* should be selected as 'mood' and also *train_info_file* stands for annotations file of training partition and *test_info_file* is for test partition similarly.
 
-For training example an example command would look like this:
+For training, an example command would look like this:
 
 ```
 python GANimation/train.py \
@@ -150,9 +150,77 @@ python GANimation/train.py \
 
 ```
 
-#### To train
+For testing with a static image, an example command would look like this:
 
-#### To test
+```
+python test.py \
+--input_path imgs/face.png \
+--output_dir GANimation/test_outputs \
+--checkpoints_dir checkpoints \
+--name experiment_1 \
+--cond_nc 2 \
+--load_epoch -1
+
+```
+
+#### Branch *video_ganimation*
+
+In this branch, the purpose is to generate small video clips of animated expressions. It is built upon the *moods_static_images* branch. GANimation model without reconstruction is used. In other words, the supervision for the frames are not coming from cycle loss in manner of CycleGAN, instead of that, supervision is coming from groundtruth frames. Previous conditional frame is either taken from generated or real frames, two of the options are possible. In the end, collection of generated frames are returned including attention mask and color maps. Implementation on training (models/ganimation.py) and testing scripts (test.py) is changed to accommodate this. 
+
+For reading data, since we are using AffWild dataset, specifically for this dataset, a script is created which you can find under data/AffWildDataset.py. 
+
+For training, an example command would look like this:
+
+```
+
+python GANimation/train.py \
+--data_dir dataset/affwild \
+--train_images_folder cropped_faces \
+--test_images_folder cropped_faces \
+--train_ids_file datasets/affwild/train_ids.csv \
+--test_ids_file datasets/affwild/test_ids.csv \
+--train_info_file datasets/affwild/annotations/train/annotations.pkl \
+--test_info_file datasets/affwild/annotations/test/annotations.pkl \
+--name experiment_1 \
+--nepochs_no_decay 200 \
+--nepochs_decay 100 \
+--batch_size 4 \
+--gpu_ids 0 \
+--lambda_mask_smooth 5e-5 \
+--checkpoints_dir checkpoints \
+--load_epoch -1 \
+--dataset_mode affwild \
+--lambda_D_cond 4000 \
+--lambda_mask 0.1 \
+--lambda_D_gp 10 \
+--cond_nc 4 \
+--lambda_D_prob 10 \
+--lambda_cyc 1.5 \
+--lambda_bidirec_cyc 1.5 \
+--frames_cnt 6
+
+```
+
+For testing with a static image, an example command would look like this:
+
+```
+python test.py \
+--input_path faces/imgs/face.jpg \
+--output_dir GANimation/test_outputs \
+--checkpoints_dir checkpoints \
+--name experiment_1 \
+--cond_nc 2 \
+--load_epoch -1 \
+--frames_cnt 16 \
+--moods_pickle_file datasets/affwild/annotations/test/178.pkl \
+--groundtruth_video datasets/affwild/videos/178.avi \
+--recurrent True
+
+```
+
+#### Branch *convgru_disc* and *convgru_unet_gen*
+
+
 
 
 
