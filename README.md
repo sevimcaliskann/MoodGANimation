@@ -222,7 +222,7 @@ In the branches __*convgru_disc*__ and __*convgru_unet_gen*__, the differences a
 
 #### Branch *spatiotemporal_disc*
 
-This branch is built upon __*convgru_...*__ branches. ConvGRU units generator are kept, next to frame-wise discriminator, additional video discriminator is added. By adding video discriminator, temporal distribution of real data is aimed to be learnt. In video discriminator, likewise frame-based discriminator, fake/real discrimination and affect prediction is done and ConvGRU unit is included in video discriminator. Addition to frame-based discriminator paramaters, video discriminator parameters to be considered are: *lambda_D_temp* which is adversarial learning hyperparameter, lambda_D_temp_gp* which is gradient penalty hyperparameter. They are kept as one-tenth of frame-based discriminator hyperparameters:
+This branch is built upon __*convgru*...___ branches. ConvGRU units generator are kept, next to frame-wise discriminator, additional video discriminator is added. By adding video discriminator, temporal distribution of real data is aimed to be learnt. In video discriminator, likewise frame-based discriminator, fake/real discrimination and affect prediction is done and ConvGRU unit is included in video discriminator. Addition to frame-based discriminator paramaters, video discriminator parameters to be considered are: *lambda_D_temp* which is adversarial learning hyperparameter, lambda_D_temp_gp* which is gradient penalty hyperparameter. They are kept as one-tenth of frame-based discriminator hyperparameters:
 
 
 ```
