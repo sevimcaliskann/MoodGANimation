@@ -167,7 +167,9 @@ python test.py \
 
 In this branch, the purpose is to generate small video clips of animated expressions. It is built upon the *moods_static_images* branch. GANimation model without reconstruction is used. In other words, the supervision for the frames are not coming from cycle loss in manner of CycleGAN, instead of that, supervision is coming from groundtruth frames. Previous conditional frame is either taken from generated or real frames, two of the options are possible. In the end, collection of generated frames are returned including attention mask and color maps. Implementation on training (models/ganimation.py) and testing scripts (test.py) is changed to accommodate this. 
 
-For reading data, since we are using AffWild dataset, specifically for this dataset, a script is created which you can find under data/AffWildDataset.py. 
+For reading data, since we are using AffWild dataset, specifically for this dataset, a script is created which you can find under data/AffWildDataset.py. In here, as a quick tip, it is assumed that annotations for each frame is enumerated and concatenated to video ID, all of annotations are kept in OrderedDict data structure in a way consecutive frames will be following the order. 
+
+One additional parameters in *'frames_cnt'* which keeps the number of frames to be generated in one iteration. 
 
 For training, an example command would look like this:
 
@@ -196,7 +198,6 @@ python GANimation/train.py \
 --cond_nc 4 \
 --lambda_D_prob 10 \
 --lambda_cyc 1.5 \
---lambda_bidirec_cyc 1.5 \
 --frames_cnt 6
 
 ```
@@ -214,14 +215,29 @@ python test.py \
 --frames_cnt 16 \
 --moods_pickle_file datasets/affwild/annotations/test/178.pkl \
 --groundtruth_video datasets/affwild/videos/178.avi \
---recurrent True
 
 ```
 
-#### Branch *convgru_disc* and *convgru_unet_gen*
+In the branches __*convgru_disc*__ and __*convgru_unet_gen*__, the differences are generator and discriminator architectures. In the discriminator, before affect prediction a GRU unit is added and in generator, U-Net connections between encoder and decoder, replacement of residual blocks with GRU unit is added. Training and testing implementations are kept same. For checking out differences and how ConvGRU is implemented, networks/discriminator_wasserstein_gan.py, networks/generator_wasserstein_gan.py and networks/convgru.py can be seen.
+
+#### Branch *spatiotemporal_disc*
+
+This branch is built upon __*convgru_...*__ branches. ConvGRU units generator are kept, next to frame-wise discriminator, additional video discriminator is added. By adding video discriminator, temporal distribution of real data is aimed to be learnt. In video discriminator, likewise frame-based discriminator, fake/real discrimination and affect prediction is done and ConvGRU unit is included in video discriminator. Addition to frame-based discriminator paramaters, video discriminator parameters to be considered are: *lambda_D_temp* which is adversarial learning hyperparameter, lambda_D_temp_gp* which is gradient penalty hyperparameter. They are kept as one-tenth of frame-based discriminator hyperparameters:
 
 
+```
 
+python GANimation/train.py \
+### ............. Default parameters etc. etc. ########
+--lambda_D_prob 10 \
+--lambda_D_gp 10 \
+--lambda_D_temp 1 \
+--lambda_D_temp_gp 1 \
+### All the other hyperparameters###
+
+```
+
+If you have further questions and want to know more details, please open an issue or send me an e-mail: <sevimcaliskansc@gmail.com>.
 
 
 
